@@ -1,0 +1,8 @@
+Gorque, developed by aahung at landxh@gmail.com
+
+====================
+
+This program is used to schedule GPU job according to 
+1) one compute node could run only one job, 
+2) job queued by priority (higher priority number should be executed first),
+rule. 
