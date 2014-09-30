@@ -7,4 +7,4 @@ This program is used to schedule GPU job according to
 2) job queued by priority (higher priority number should be executed first),
 rule. 
 
-In [Sample job script](job_script.sh), it submit 4 jobs to 4 nodes.
+In job_script.sh, it submit 4 jobs to 4 nodes.
