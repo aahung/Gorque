@@ -6,3 +6,5 @@ This program is used to schedule GPU job according to
 1) one compute node could run only one job, 
 2) job queued by priority (higher priority number should be executed first),
 rule. 
+
+In <a href="blob/master/job_script.sh">Sample job script</a>, it submit 4 jobs to 4 nodes.
