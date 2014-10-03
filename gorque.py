@@ -41,11 +41,13 @@ class queue:
             c.execute(command)
         print template.format('Id', 'Name', 'User', 'Priority', 'Time Use', 'Status', 'Node')
         print template.format('----', '----', '----', '----', '----', '----', '----')
+        job_count = 0
         for row in c.fetchall():
             mode = row[5]
             time_passed = None
             if mode == 'R':
                 time_passed = humanize_time(int(time.time()) - row[3])
+                job_count = job_count + 1
             elif mode == 'F' or mode == 'K':
                 time_passed = humanize_time(row[4] - row[3])
                 # ignore if too long
@@ -53,7 +55,10 @@ class queue:
                     continue
             else:
                 time_passed = humanize_time(0)
-            print template.format(row[7], row[0], row[1], row[2], time_passed, mode, row[6])
+            print template.format(str(row[7]), row[0], row[1], str(row[2]), time_passed, mode, row[6])
+        print template.format('----', '----', '----', '----', '----', '----', '----')
+        print str(job_count) + ' jobs running now.'
+
 
     def insert_job(self, name, user, priority, script):
         c = self.conn.cursor()
