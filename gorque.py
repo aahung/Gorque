@@ -29,14 +29,18 @@ class queue:
             conn.commit()
         self.conn = conn
 
-    def print_queue(self):
-        # print the current queue 
+    def print_queue(self, all=False):
+        # print the current queue
         c = self.conn.cursor()
-        template = "{0:4}|{1:20}|{2:10}|{3:10}|{4:10}|{5:5}|{6:19}"
-        c.execute('''SELECT name, user, priority,
-            start_time, end_time, mode, node, ROWID FROM queue
-            ORDER BY ROWID DESC''')
-        print template.format('id', 'name', 'user', 'priority', 'time use', 'mode', 'node')
+        template = "{0:4} | {1:20} | {2:10} | {3:10} | {4:10} | {5:5} | {6:19}"
+        command = '''SELECT name, user, priority,
+            start_time, end_time, mode, node, ROWID FROM queue '''
+        if all:
+            c.execute(command + ''' ORDER BY ROWID DESC''')
+        else:
+            c.execute(command)
+        print template.format('Id', 'Name', 'User', 'Priority', 'Time Use', 'Status', 'Node')
+        print template.format('----', '----', '----', '----', '----', '----', '----')
         for row in c.fetchall():
             mode = row[5]
             time_passed = None
@@ -44,6 +48,9 @@ class queue:
                 time_passed = humanize_time(int(time.time()) - row[3])
             elif mode == 'F' or mode == 'K':
                 time_passed = humanize_time(row[4] - row[3])
+                # ignore if too long
+                if not all and int(time.time()) - row[4] > 60:
+                    continue
             else:
                 time_passed = humanize_time(0)
             print template.format(row[7], row[0], row[1], row[2], time_passed, mode, row[6])
@@ -167,7 +174,7 @@ def main(argv):
     script_path = None
     delete_rowid = None
     try:
-        opts, args = getopt.getopt(argv, "u:s:ld:c")
+        opts, args = getopt.getopt(argv, "u:s:lad:c")
     except getopt.GetoptError:
         print 'wrong syntax, please contact admin to request how to manual.'
         sys.exit(2)
@@ -179,6 +186,10 @@ def main(argv):
         elif opt in ("-l"):
             q = queue()
             q.print_queue()
+            sys.exit(0)
+        elif opt in ("-a"):
+            q = queue()
+            q.print_queue(True)
             sys.exit(0)
         elif opt in ("-d"):
             delete_rowid = arg

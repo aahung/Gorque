@@ -10,9 +10,9 @@ int main(int argc, char *argv[]) {
 	std::string default_directory("/share/apps/gorque/");
 	std::string command;
 	if (argc == 1)
-		command = default_directory + "gorque.py -l | head --line=20 ";
+		command = default_directory + "gorque.py -l";
 	else
-		command = default_directory + "gorque.py -l | less";
+		command = default_directory + "gorque.py -a | less";
 	// std::cout << command;
 	setuid(0);
 	system(command.c_str());
