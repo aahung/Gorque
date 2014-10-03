@@ -148,6 +148,11 @@ class queue:
         waiting_jobs = c.fetchall()
         if len(waiting_jobs) > 0:
             free_nodes = self.find_free_nodes()
+            # last use compute-0-0
+            if free_nodes[0].startswith('compute-0-0'):
+                compute0 = free_nodes[0]
+                free_nodes.remove(free_nodes[0])
+                free_nodes.append(compute0)
             for job in waiting_jobs:
                 if len(free_nodes) > 0:
                     node = free_nodes[0]
