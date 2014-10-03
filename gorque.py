@@ -144,7 +144,7 @@ class queue:
 
     def check_jobs(self):
         c = self.conn.cursor()
-        c.execute('''SELECT ROWID FROM queue WHERE mode = 'Q' ''')
+        c.execute('''SELECT ROWID FROM queue WHERE mode = 'Q' ORDER BY priority DESC ''')
         waiting_jobs = c.fetchall()
         if len(waiting_jobs) > 0:
             free_nodes = self.find_free_nodes()
