@@ -8,7 +8,11 @@
 
 int main(int argc, char *argv[]) {
 	std::string default_directory("/share/apps/gorque/");
-	std::string command = default_directory + "gorque.py -l | less";
+	std::string command;
+	if (argc == 1)
+		command = default_directory + "gorque.py -l | head --line=20 ";
+	else
+		command = default_directory + "gorque.py -l | less";
 	// std::cout << command;
 	setuid(0);
 	system(command.c_str());
