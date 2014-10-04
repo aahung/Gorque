@@ -170,6 +170,7 @@ class queue:
                     node = free_nodes[0]
                     self.execute_job(job[0], node)
                     free_nodes.remove(node)
+                    return 
                 else:
                     break
 
