@@ -166,6 +166,9 @@ class queue:
                     compute0 = free_nodes[0]
                     free_nodes.remove(free_nodes[0])
                     free_nodes.append(compute0)
+                # refetch database in case already executed by another cron process.
+                c.execute('''SELECT ROWID FROM queue WHERE mode = 'Q' ORDER BY priority DESC ''')
+                waiting_jobs = c.fetchall()
                 if len(waiting_jobs) > 0:
                     job = waiting_jobs[0]
                     node = free_nodes[0]
