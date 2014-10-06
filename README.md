@@ -1,11 +1,23 @@
-# Gorque, developed by aahung at landxh@gmail.com
+# Gorque
+
+## Intro
+Gorque is used for linux based computer cluster with CUDA-enabled compute nodes. Compute node should have command ```nvidia-smi``` and in my case, GPU free memory is set to ```99MB```.
 
 This program is used to schedule GPU job according to 
-1) one compute node could run only one job, 
-2) job queued by priority (higher priority number should be executed first),
+1. one compute node could run only one job, 
+2. job queued by priority (higher priority number should be executed first),
 rule. 
 
 ## Install
+```shell
+make all
+```
+put all file in directory "production" to the target directory, and run "grant.sh" with root.
+add 
+```shell
+* * * * * /directory/to/gorque/godaemon
+```
+to ```crontab -e``` to enable gorque gaemon.
 
 ## Usage
 

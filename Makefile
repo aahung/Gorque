@@ -27,6 +27,9 @@ godel:
 python:
 		cp gorque.py $(OUTPUTDIR)/gorque.py
 
+grant:
+		cp grant.sh $(OUTPUTDIR)/grant.sh
+
 
 clean:
 		rm *.o *.linkinfo
