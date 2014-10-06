@@ -9,6 +9,7 @@ This program is used to schedule GPU job according to
 rule. 
 
 ## Install
+change the directory path in the code according to your environment.
 ```shell
 make all
 ```
