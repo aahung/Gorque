@@ -14,6 +14,14 @@ def humanize_time(secs):
     return '%02d:%02d:%02d' % (hours, mins, secs)
 
 
+def crop_string(before, length):
+    after = str(before)
+    if len(after) > length:
+        half_length = int(length / 2) - 1
+        after = after[:half_length] + '..' + after[-half_length:]
+    return after
+
+
 class queue:
     def __init__(self):
         default_directory = '/share/apps/gorque/'
@@ -32,15 +40,16 @@ class queue:
     def print_queue(self, all=False):
         # print the current queue
         c = self.conn.cursor()
-        template = "{0:4} | {1:20} | {2:10} | {3:10} | {4:10} | {5:5} | {6:19}"
+        template = "| {0:4} | {1:20} | {2:10} | {3:10} | {4:10} | {5:6} | {6:13} |"
         command = '''SELECT name, user, priority,
             start_time, end_time, mode, node, ROWID FROM queue '''
         if all:
             c.execute(command + ''' ORDER BY ROWID DESC''')
         else:
             c.execute(command)
+        print template.format('-' * 4, '-' * 20, '-' * 10, '-' * 10, '-' * 10, '-' * 6, '-' * 13)
         print template.format('Id', 'Name', 'User', 'Priority', 'Time Use', 'Status', 'Node')
-        print template.format('----', '----', '----', '----', '----', '----', '----')
+        print template.format('-' * 4, '-' * 20, '-' * 10, '-' * 10, '-' * 10, '-' * 6, '-' * 13)
         job_count = 0
         for row in c.fetchall():
             mode = row[5]
@@ -55,9 +64,9 @@ class queue:
                     continue
             else:
                 time_passed = humanize_time(0)
-            print template.format(str(row[7]), row[0], row[1], str(row[2]), time_passed, mode, row[6])
-        print template.format('----', '----', '----', '----', '----', '----', '----')
-        print str(job_count) + ' jobs running now.'
+            print template.format(str(row[7]), crop_string(row[0], 20), row[1], str(row[2]), time_passed, mode, row[6])
+        print template.format('-' * 4, '-' * 20, '-' * 10, '-' * 10, '-' * 10, '-' * 6, '-' * 13)
+        print '| ' + str(job_count) + ' jobs running now.'
 
 
     def insert_job(self, name, user, priority, script):

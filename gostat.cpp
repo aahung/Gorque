@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string>
+#include <string.h>
 #include <sys/types.h>
 
 int main(int argc, char *argv[]) {
@@ -11,9 +12,10 @@ int main(int argc, char *argv[]) {
 	std::string command;
 	if (argc == 1)
 		command = default_directory + "gorque.py -l";
-	else
+	else if (strcmp(argv[1], "-a") == 0)
 		command = default_directory + "gorque.py -a | less";
-	// std::cout << command;
+	else
+		std::cout << "Usage: gostat [-a]\n";
 	setuid(0);
 	system(command.c_str());
 	return 0;
