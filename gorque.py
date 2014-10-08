@@ -108,7 +108,7 @@ class queue:
 
     def execute_job(self, rowid, node):
         c = self.conn.cursor()
-        c.execute('''SELECT user, script FROM queue WHERE ROWID = ?''', (str(rowid),))
+        c.execute('''SELECT user, script, name FROM queue WHERE ROWID = ?''', (str(rowid),))
         job = c.fetchone()
         template = '''/sbin/runuser -l {0} -c 'ssh {1} "/bin/bash {2}"' '''
         tmp_script_path = '/share/apps/gorque/' + job[0] + '_' + str(rowid) + '.sh'
@@ -122,7 +122,7 @@ class queue:
         self.conn.commit()
         out, err = process.communicate()
         # save the output or error
-        self.log_to_file(job[0], rowid, out, err)
+        self.log_to_file(job[0], rowid, out, err, job[2])
         # remove the sh file
         os.remove(tmp_script_path)
         self.finish_job(rowid)
@@ -147,14 +147,14 @@ class queue:
         c.execute('''UPDATE queue SET mode = 'K', end_time = ?, pid = NULL WHERE ROWID = ?''', (int(time.time()), str(rowid)))
         self.conn.commit()
 
-    def log_to_file(self, user, rowid, out, err):
+    def log_to_file(self, user, rowid, out, err, job_name):
         directory = '/home/' + user + '/gorque_log/'
         if not os.path.exists(directory):
             os.makedirs(directory)
-        f = open(directory + str(rowid) + '_' + time.strftime("%H:%M:%S") + '.log', 'w')
+        f = open(directory + str(rowid) + '_' + str(job_name) + '.log', 'w')
         f.write(out)
         f.close()
-        f = open(directory + str(rowid) + '_' + time.strftime("%H:%M:%S") + '.error', 'w')
+        f = open(directory + str(rowid) + '_' + str(job_name) + '.error', 'w')
         f.write(err)
         f.close()
 
@@ -172,9 +172,9 @@ class queue:
             if len(free_nodes) > 0:
                 # last use compute-0-0
                 if free_nodes[0].startswith('compute-0-0'):
-                    compute0 = free_nodes[0]
+                    # compute0 = free_nodes[0]
                     free_nodes.remove(free_nodes[0])
-                    free_nodes.append(compute0)
+                    # free_nodes.append(compute0)
                 # refetch database in case already executed by another cron process.
                 c.execute('''SELECT ROWID FROM queue WHERE mode = 'Q' ORDER BY priority DESC ''')
                 waiting_jobs = c.fetchall()
