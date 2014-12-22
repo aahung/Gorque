@@ -1,0 +1,6 @@
+{
+    // Set user_max_job, if leave blank, there will be no limit.
+//    "user_max_job": 9,
+    
+    "version": 0.7
+}
