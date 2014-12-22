@@ -35,6 +35,11 @@ gosub <job_script.sh>
 gostat [-a]
 ```
 
+### Modify priority after submitting job
+```shell
+goprior <job_id>
+```
+
 ### Cancel job
 ```shell
 godel <job_id>
