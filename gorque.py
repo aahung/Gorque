@@ -36,8 +36,8 @@ def crop_string(before, length):
 
 class queue:
     def __init__(self):
-        default_directory = '/share/apps/gorque/'
-        conn = sqlite3.connect(default_directory + 'gorque.db')
+        self.default_directory = '/share/apps/gorque/'
+        conn = sqlite3.connect(self.default_directory + 'gorque.db')
         c = conn.cursor()
         c.execute('''SELECT name FROM SQLITE_MASTER WHERE type = 'table' ''')
         if c.fetchone() is None:
@@ -45,7 +45,7 @@ class queue:
             c.execute('''CREATE TABLE queue
                 (user TEXT, script BLOB, priority INTEGER,
                     submit_time INTEGER, start_time INTEGER, end_time INTEGER,
-                    mode TEXT, node TEXT, name TEXT, pid INTEGER)''')
+                    mode TEXT, node TEXT, name TEXT, pid INTEGER, cpus INTEGER, torque_pid INTEGER)''')
             conn.commit()
         self.conn = conn
         self.max_job_per_user_limit = 12
@@ -53,16 +53,16 @@ class queue:
     def print_queue(self, all=False):
         # print the current queue
         c = self.conn.cursor()
-        template = "| {0:4} | {1:20} | {2:10} | {3:10} | {4:10} | {5:6} | {6:13} |"
+        template = "| {0:4} | {1:20} | {2:10} | {3:10} | {4:10} | {5:6} | {6:13} | {7:6} | {8:13} |"
         command = '''SELECT name, user, priority,
-            start_time, end_time, mode, node, ROWID FROM queue '''
+            start_time, end_time, mode, node, ROWID, cpus, torque_pid FROM queue '''
         if all:
             c.execute(command + ''' ORDER BY ROWID DESC''')
         else:
             c.execute(command)
-        print template.format('-' * 4, '-' * 20, '-' * 10, '-' * 10, '-' * 10, '-' * 6, '-' * 13)
-        print template.format('Id', 'Name', 'User', 'Priority', 'Time Use', 'Status', 'Node')
-        print template.format('-' * 4, '-' * 20, '-' * 10, '-' * 10, '-' * 10, '-' * 6, '-' * 13)
+        print template.format('-' * 4, '-' * 20, '-' * 10, '-' * 10, '-' * 10, '-' * 6, '-' * 13, '-' * 6, '-' * 13)
+        print template.format('Id', 'Name', 'User', 'Priority', 'Time Use', 'Status', 'Node', 'CPUs', 'torque_pid')
+        print template.format('-' * 4, '-' * 20, '-' * 10, '-' * 10, '-' * 10, '-' * 6, '-' * 13, '-' * 6, '-' * 13)
         job_count = 0
         for row in c.fetchall():
             mode = row[5]
@@ -77,14 +77,17 @@ class queue:
                     continue
             else:
                 time_passed = humanize_time(0)
-            print template.format(str(row[7]), crop_string(row[0], 20), row[1], str(row[2]), time_passed, mode, row[6])
-        print template.format('-' * 4, '-' * 20, '-' * 10, '-' * 10, '-' * 10, '-' * 6, '-' * 13)
+            print template.format(str(row[7]), crop_string(row[0], 20), row[1], str(row[2]), time_passed, mode, row[6], str(row[8]), str(row[9]))
+        print template.format('-' * 4, '-' * 20, '-' * 10, '-' * 10, '-' * 10, '-' * 6, '-' * 13, '-' * 6, '-' * 13)
         print '| ' + str(job_count) + ' jobs running now.'
 
-    def insert_job(self, name, user, priority, script):
+    def insert_job(self, name, user, priority, script, cpus):
         c = self.conn.cursor()
-        data = (user, script, priority, int(time.time()), 0, 0, 'Q', '', name, None)
-        c.execute('''INSERT INTO queue VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', data)
+        data = (user, script, priority, int(time.time()), 0, 0, 'Q', '', name, None, cpus)
+        c.execute('''INSERT INTO queue (user, script, priority,
+                    submit_time, start_time, end_time,
+                    mode, node, name, pid, cpus)
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', data)
         self.conn.commit()
         c.execute('''SELECT ROWID FROM queue ORDER BY ROWID DESC LIMIT 1''')
         print c.fetchone()
@@ -94,6 +97,7 @@ class queue:
         f = open(script_path)
         name = user + ' job'
         priority = 1
+        cpus = 1
         scripts = []
         reading_script = False
         currentScript = ""
@@ -105,6 +109,8 @@ class queue:
                 name = content[5:].strip()
             elif content.startswith('priority:'):
                 priority = int(content[9:].strip())
+            elif content.startswith('cpus:'):
+                cpus = int(content[5:].strip())
             elif content == '[' and not reading_script:
                 reading_script = True
             elif content == ']' and reading_script:
@@ -116,21 +122,40 @@ class queue:
         if len(scripts) == 0:
             print 'not job detected in the script.'
         for script in scripts:
-            self.insert_job(name, user, priority, script)
+            self.insert_job(name, user, priority, script, cpus)
 
-    def execute_job(self, rowid, node):
+    def submit_torque_occupy_job(self, rowid, user, name, node, cpus):
+        job_template = open(self.default_directory + 'occupy_torque_script.sh').read()
+        job_script_file_path = '/tmp/gorque_torque_occupy_' + str(rowid) + '.sh'
+        job_script_file = open(job_script_file_path, 'w')
+        job_script_file.write(job_template % (node, cpus))
+        job_script_file.close()
+        command = 'qsub ' + job_script_file_path
+        torque_pid = subprocess.check_output(['/sbin/runuser', '-l', user, '-c', command]).split('.')[0]
+        return int(torque_pid)
+
+    def kill_torque_job(self, rowid):
+        c = self.conn.cursor()
+        c.execute('''SELECT torque_pid FROM queue WHERE ROWID = ?''', (str(rowid),))
+        job = c.fetchone()
+        torque_pid = str(job[0])
+        os.system('qdel ' + torque_pid)
+
+    def execute_job(self, rowid, node, cpus):
         c = self.conn.cursor()
         c.execute('''SELECT user, script, name FROM queue WHERE ROWID = ?''', (str(rowid),))
         job = c.fetchone()
+        torque_pid = self.submit_torque_occupy_job(rowid, job[0], job[2], node, cpus)
         template = '''/sbin/runuser -l {0} -c 'ssh {1} "/bin/bash {2}"' '''
         tmp_script_path = '/share/apps/gorque/' + job[0] + '_' + str(rowid) + '.sh'
         f = open(tmp_script_path, 'w')
         f.write(job[1])
         f.close()
         command = template.format(job[0], node, tmp_script_path)
+        print 'job ' + str(rowid) + ' executing'
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # update pid to database
-        c.execute('''UPDATE queue SET mode = 'R', start_time = ?, node = ?, pid = ? WHERE ROWID = ?''', (int(time.time()), node, process.pid, str(rowid)))
+        c.execute('''UPDATE queue SET mode = 'R', start_time = ?, node = ?, pid = ?, torque_pid = ? WHERE ROWID = ?''', (int(time.time()), node, process.pid, torque_pid, str(rowid)))
         self.conn.commit()
         out, err = process.communicate()
         # save the output or error
@@ -143,6 +168,7 @@ class queue:
         c = self.conn.cursor()
         c.execute('''UPDATE queue SET mode = 'F', end_time = ? WHERE ROWID = ?''', (int(time.time()), str(rowid)))
         self.conn.commit()
+        self.kill_torque_job(rowid)
 
     def prioritize_job(self, rowid, priority):
         c = self.conn.cursor()
@@ -165,6 +191,7 @@ class queue:
                 # kill GPU job
                 print gpu_pid
                 os.system('''ssh %s 'kill -9 %s' ''' % (job[2], gpu_pid))
+        self.kill_torque_job(rowid)
         c = self.conn.cursor()
         c.execute('''UPDATE queue SET mode = 'K', end_time = ?, pid = NULL WHERE ROWID = ?''', (int(time.time()), str(rowid)))
         self.conn.commit()
@@ -187,7 +214,7 @@ class queue:
 
     def get_waiting_jobs(self):
         c = self.conn.cursor()
-        c.execute('''SELECT ROWID, user FROM queue WHERE mode = 'Q' ORDER BY priority DESC ''')
+        c.execute('''SELECT ROWID, user, cpus FROM queue WHERE mode = 'Q' ORDER BY priority DESC ''')
         waiting_jobs = c.fetchall()
         qualified_jobs = []
         for job in waiting_jobs:
@@ -213,9 +240,34 @@ class queue:
                 qualified_jobs = self.get_waiting_jobs()
                 if len(qualified_jobs) > 0:
                     # check user limit
-                    job = qualified_jobs[0]
-                    node = free_nodes[0]
-                    self.execute_job(job[0], node)
+                    found = False
+                    job = None
+                    node = None
+                    for qualified_job in qualified_jobs:
+                        j_free_nodes = []
+                        j_cpus = qualified_job[2]
+                        # check torque status find free cpu node which cpu
+                        # availibility >= cpu required
+                        qstat = subprocess.check_output(['qstat', '-n'])
+                        for free_node in free_nodes:
+                            j_cpus_in_use = qstat.count(free_node + '/')
+                            if j_cpus_in_use + j_cpus > 16:
+                                pass
+                            else:
+                                j_free_nodes.append(free_node)
+                        if len(j_free_nodes) > 0:
+                            node = j_free_nodes[0]
+                            job = qualified_job
+                            found = True
+                            break
+                    if found:
+                        self.execute_job(job[0], node, job[2])
+                    else:
+                        print 'no free nodes avalible'
+                else:
+                    print 'no free nodes avalible'
+            else:
+                print 'no free nodes avalible'
         else:
             print 'no qualified waiting jobs in the queue'
 
