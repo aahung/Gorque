@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python -u
 
 import os
 import subprocess
@@ -7,6 +7,11 @@ import time
 import sys
 import getopt
 import json
+from time import strftime
+
+
+def golog(data):
+    print '[' + strftime("%m/%d/%Y %H:%M:%S") + '] ' + str(data)
 
 
 def load_config():
@@ -130,21 +135,26 @@ class queue:
         job_script_file = open(job_script_file_path, 'w')
         job_script_file.write(job_template % (node, cpus))
         job_script_file.close()
-        command = 'qsub ' + job_script_file_path
-        torque_pid = subprocess.check_output(['/sbin/runuser', '-l', user, '-c', command]).split('.')[0]
-        return int(torque_pid)
+        try:
+            torque_pid = subprocess.check_output(['/usr/bin/sudo', '-u', user, '/opt/torque/bin/qsub', job_script_file_path])
+            torque_pid = torque_pid.split('.')[0]
+            return int(torque_pid)
+        except Exception, e:
+            golog(e)
+            exit(2)
 
     def kill_torque_job(self, rowid):
         c = self.conn.cursor()
         c.execute('''SELECT torque_pid FROM queue WHERE ROWID = ?''', (str(rowid),))
         job = c.fetchone()
         torque_pid = str(job[0])
-        os.system('qdel ' + torque_pid)
+        os.system('/opt/torque/bin/qdel ' + torque_pid)
 
     def execute_job(self, rowid, node, cpus):
         c = self.conn.cursor()
         c.execute('''SELECT user, script, name FROM queue WHERE ROWID = ?''', (str(rowid),))
         job = c.fetchone()
+        golog('submit shadow job (torque)')
         torque_pid = self.submit_torque_occupy_job(rowid, job[0], job[2], node, cpus)
         template = '''/sbin/runuser -l {0} -c 'ssh {1} "/bin/bash {2}"' '''
         tmp_script_path = '/share/apps/gorque/' + job[0] + '_' + str(rowid) + '.sh'
@@ -152,7 +162,7 @@ class queue:
         f.write(job[1])
         f.close()
         command = template.format(job[0], node, tmp_script_path)
-        print 'job ' + str(rowid) + ' executing'
+        golog('job ' + str(rowid) + ' executing')
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # update pid to database
         c.execute('''UPDATE queue SET mode = 'R', start_time = ?, node = ?, pid = ?, torque_pid = ? WHERE ROWID = ?''', (int(time.time()), node, process.pid, torque_pid, str(rowid)))
@@ -208,8 +218,11 @@ class queue:
         f.close()
 
     def find_free_nodes(self):
-        free_nodes = subprocess.check_output('''for i in compute-0-0 compute-0-2 compute-0-3 compute-0-4 compute-0-5 compute-0-6 compute-0-7 compute-0-8 compute-0-9 compute-0-10 compute-0-11 compute-0-12 compute-0-13 compute-0-14 compute-0-15 compute-0-16 ; do ssh ${i} 'mem=$(nvidia-smi | grep 4799 | cut -d"/" -f3 | cut -d"|" -f2 | sed -e "s/^[ \t]*//"); if [[ "$mem" == 10MiB* ]]; then echo $(hostname) | cut -d"." -f1; fi'; done;''', shell=True)
+        golog('checking GPU free nodes')
+        free_nodes = subprocess.check_output('''for i in compute-0-2 compute-0-3 compute-0-4 compute-0-5 compute-0-6 compute-0-7 compute-0-8 compute-0-9 compute-0-10 compute-0-11 compute-0-12 compute-0-13 compute-0-14 compute-0-15 compute-0-16 ; do ssh ${i} 'mem=$(nvidia-smi | grep 4799 | cut -d"/" -f3 | cut -d"|" -f2 | sed -e "s/^[ \t]*//"); if [[ "$mem" == 10MiB* ]]; then echo $(hostname) | cut -d"." -f1; fi'; done;''', shell=True)
         free_nodes = [x for x in free_nodes.split('\n') if x != '']
+        if len(free_nodes) > 0:
+            golog('found GPU free node(s)')
         return free_nodes
 
     def get_waiting_jobs(self):
@@ -248,7 +261,9 @@ class queue:
                         j_cpus = qualified_job[2]
                         # check torque status find free cpu node which cpu
                         # availibility >= cpu required
-                        qstat = subprocess.check_output(['qstat', '-n'])
+                        golog('checking CPU free nodes')
+                        qstat = subprocess.check_output(['/opt/torque/bin/qstat', '-n'])
+                        golog('called \'gostat -n\'')
                         for free_node in free_nodes:
                             j_cpus_in_use = qstat.count(free_node + '/')
                             if j_cpus_in_use + j_cpus > 16:
@@ -256,20 +271,22 @@ class queue:
                             else:
                                 j_free_nodes.append(free_node)
                         if len(j_free_nodes) > 0:
+                            golog('found CPU free node(s)')
                             node = j_free_nodes[0]
                             job = qualified_job
                             found = True
                             break
                     if found:
+                        golog('found a job, ready to execute')
                         self.execute_job(job[0], node, job[2])
                     else:
-                        print 'no free nodes avalible'
+                        golog('no free nodes avalible')
                 else:
-                    print 'no free nodes avalible'
+                    golog('no free nodes avalible')
             else:
-                print 'no free nodes avalible'
+                golog('no free nodes avalible')
         else:
-            print 'no qualified waiting jobs in the queue'
+            golog('no qualified waiting jobs in the queue')
 
 
 def main(argv):
@@ -315,4 +332,5 @@ def main(argv):
         sys.exit(0)
 
 if __name__ == "__main__":
+    golog('gorque called with parameters: ' + str(sys.argv[1:]))
     main(sys.argv[1:])
