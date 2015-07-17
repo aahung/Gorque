@@ -50,8 +50,11 @@ class Gorque:
                                             - job.get('start_time'))
                 job_count = job_count + 1
             elif mode == 'F' or mode == 'K':
-                time_passed = humanize_time(job.get('start_time')
-                                            - job.get('end_time'))
+                if job.get('start_time'):
+                    time_passed = humanize_time(job.get('end_time')
+                                                - job.get('start_time'))
+                else:
+                    time_passed = humanize_time(0)
                 # ignore if too long
                 if not all and int(time.time()) - job.get('end_time') > 60:
                     continue
