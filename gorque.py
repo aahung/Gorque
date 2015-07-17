@@ -95,7 +95,7 @@ class Gorque:
             'name': name,
             'cpus': cpus})
         db = DB(goconfig.DB_FILE)
-        print 'job created, job id is %s' % (str(db.insert_job(job)),)
+        print 'job created, job id is %s' % (str(db.insert(job)),)
 
     def submit_job(self, user, script_path):
         # analysis file
