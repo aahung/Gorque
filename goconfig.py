@@ -24,7 +24,7 @@ class Config():
         try:
             self.validate_and_load(json.load(f))
         except Exception, e:
-            print(e)
+            print('Config reading error: %s' % (e,))
             exit(-1)
 
     def validate_and_load(self, config):
