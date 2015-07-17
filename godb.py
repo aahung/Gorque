@@ -134,6 +134,8 @@ class DB():
         c = conn.cursor()
         c.execute(command, rowid)
         row = c.fetchone()
+        if not row:
+            return None
         conn.close()
         job.rowid = rowid
         for key, value in zip(columns, row):

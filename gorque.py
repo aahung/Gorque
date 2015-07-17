@@ -113,38 +113,39 @@ class Gorque:
         for script in scripts:
             self.insert_job(name, user, priority, script, cpus)
 
-    def kill_torque_job(self, rowid):
-        c = self.conn.cursor()
-        c.execute('''SELECT torque_pid FROM queue WHERE ROWID = ?''',
-                  (str(rowid),))
-        job = c.fetchone()
-        torque_pid = str(job[0])
+    def kill_torque_job(self, torque_pid):
         os.system('/opt/torque/bin/qdel ' + torque_pid)
 
     def prioritize_job(self, rowid, priority):
-        c = self.conn.cursor()
-        c.execute('''UPDATE queue SET priority = ? WHERE ROWID = ?''', (int(priority), str(rowid)))
-        self.conn.commit()
+        db = DB(goconfig.DB_FILE)
+        db.set(rowid, 'priority', priority)
 
     def kill_job(self, rowid):
-        c = self.conn.cursor()
-        c.execute('''SELECT pid, mode, node FROM queue WHERE ROWID = ?''', (str(rowid),))
-        job = c.fetchone()
-        if job[0] is not None:
-            print job[0]
-            os.system('kill -9 ' + str(job[0]))
-            os.system('kill -9 ' + str(job[0] + 1))
-            gpu_pid = subprocess.check_output('''ssh %s 'nvidia-smi | sed "16!d" | tr -s " " | cut -d" " -f3 ' ''' % (job[2],), shell=True)
+        db = DB(goconfig.DB_FILE)
+        job = db.fetch_by_id(rowid)
+        if not job:
+            print 'no such a job'
+        if job.get('pid') is not None:
+            print 'killing process %s and %s' % (str(job.get('pid')),
+                                                 str(job.get('pid') + 1))
+            os.system('kill -9 ' + str(job.get('pid')))
+            os.system('kill -9 ' + str(job.get('pid') + 1))
+            command = ('''ssh %s 'nvidia-smi | '''
+                       '''sed "16!d" | tr -s " " | '''
+                       '''cut -d" " -f3 ' ''') % (job.get('node'),)
+            gpu_pid = subprocess.check_output(command, shell=True)
             if gpu_pid.strip() == 'running':
                 # no GPU job
                 pass
             else:
                 # kill GPU job
                 print gpu_pid
-                os.system('''ssh %s 'kill -9 %s' ''' % (job[2], gpu_pid))
-        self.kill_torque_job(rowid)
-        c = self.conn.cursor()
-        c.execute('''UPDATE queue SET mode = 'K', end_time = ?, pid = NULL WHERE ROWID = ?''', (int(time.time()), str(rowid)))
+                os.system('''ssh %s 'kill -9 %s' ''' % (job.get('node'),
+                                                        gpu_pid))
+        self.kill_torque_job(job.get('torque_pid'))
+        job.set('mode', 'K')
+        job.set('end_time', int(time.time()))
+        db.update(job)
         self.conn.commit()
 
     def log_to_file(self, user, rowid, out, err, job_name):
