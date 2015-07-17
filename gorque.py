@@ -59,9 +59,9 @@ class Gorque:
                 time_passed = humanize_time(0)
             print template.format(job.rowid, crop_string(job.get('name'), 20),
                                   job.get('user'), str(job.get('priority')),
-                                  time_passed, mode, job.get('node'),
+                                  time_passed, mode, job.get('node', True),
                                   str(job.get('cpus')),
-                                  str(job.get('torque_pid')))
+                                  str(job.get('torque_pid', True)))
         print template.format('-' * 4, '-' * 20, '-' * 10, '-' * 10, '-' * 10,
                               '-' * 6, '-' * 13, '-' * 6, '-' * 13)
         print '| %s jobs running now.' % (str(job_count),)

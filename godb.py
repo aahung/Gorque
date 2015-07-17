@@ -61,6 +61,17 @@ class DB():
                     'torque_pid': int}
 
         @staticmethod
+        def convert_to_type_with_key(key, value, convert_none=False):
+            t = DB.Job.static_key_value_type()[key]
+            if value:
+                return t(value)
+            else:
+                if convert_none:
+                    return t()
+                else:
+                    return None
+
+        @staticmethod
         def static_keys():
             return DB.Job.static_key_value_type().keys()
 
@@ -70,15 +81,21 @@ class DB():
         def values(self):
             return self.dictionary.values()
 
-        def get(self, name):
+        def get(self, name, convert_none=False):
             if name not in DB.Job.static_keys():
                 raise Exception('no such key' % (name,))
-            return self.dictionary[name]
+            if convert_none:
+                return DB.Job.convert_to_type_with_key(name,
+                                                       self.dictionary[name],
+                                                       True)
+            else:
+                return self.dictionary[name]
 
         def set(self, name, value):
             if name not in DB.Job.static_keys():
                 raise Exception('no such key' % (name,))
-            self.dictionary[name] = value
+            self.dictionary[name] = DB.Job.convert_to_type_with_key(name,
+                                                                    value)
 
     path = None
 
@@ -121,10 +138,7 @@ class DB():
             job = DB.Job()
             job.rowid = int(row[-1])
             for key, value in zip(columns[:-1], row[:-1]):
-                if value:
-                    job.set(key, DB.Job.static_key_value_type()[key](value))
-                else:
-                    job.set(key, None)
+                    job.set(key, value)
             jobs.append(job)
         conn.close()
         return jobs
