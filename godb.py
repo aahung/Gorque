@@ -204,7 +204,7 @@ class DB():
     def update(self, job):
         terms = []
         for key in job.keys():
-            terms.append('%s = ?', (key,))
+            terms.append('%s = ?' % (key,))
         command = '''UPDATE queue SET %s
                      WHERE ROWID = ?''' % (str.join(', ', terms),)
         conn = sqlite3.connect(self.path)
