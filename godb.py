@@ -34,15 +34,15 @@ class DB():
         # torque_pid = int()
 
         rowid = None
-        dict = {}
+        dictionary = dict()
 
-        def __init__(self, dict=None):
+        def __init__(self, dictionary=None):
             for key in DB.Job.static_keys():
-                    self.dict[key] = None
-            if dict:
-                for key, value in zip(dict.keys(), dict.values()):
+                    self.dictionary[key] = None
+            if dictionary:
+                for key, value in zip(dictionary.keys(), dictionary.values()):
                     if key in DB.Job.static_keys():
-                        self.dict[key] = value
+                        self.dictionary[key] = value
 
         @staticmethod
         def static_key_value_type():
@@ -64,20 +64,20 @@ class DB():
             return DB.Job.static_key_value_type().keys()
 
         def keys(self):
-            return self.dict.keys()
+            return self.dictionary.keys()
 
         def values(self):
-            return self.dict.values()
+            return self.dictionary.values()
 
         def get(self, name):
             if name not in DB.Job.static_keys():
                 raise Exception('no such key' % (name,))
-            return self.dict[name]
+            return self.dictionary[name]
 
         def set(self, name, value):
             if name not in DB.Job.static_keys():
                 raise Exception('no such key' % (name,))
-            self.dict[name] = value
+            self.dictionary[name] = value
 
     path = ''
 
