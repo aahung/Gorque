@@ -7,23 +7,7 @@ import goconfig
 import time
 import sys
 import getopt
-import json
-from time import strftime
-
-
-def golog(data):
-    print '[' + strftime("%m/%d/%Y %H:%M:%S") + '] ' + str(data)
-
-
-def load_config():
-    # for future usage
-    f = open('config.json')
-    ls = f.readlines()
-    j = ''
-    for l in ls:
-        if not l.strip().startswith('//'):
-            j = j + l
-    return json.loads(j)
+from golog import golog
 
 
 def humanize_time(secs):

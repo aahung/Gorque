@@ -8,30 +8,13 @@ from godb import DB
 from multiprocessing import Process
 from time import strftime
 from time import sleep
+from golog import golog
 
 
 def background_run_job(job, node):
     config = goconfig.Config()
     daemon = Daemon(config)
     daemon.run_job(job, node)
-
-
-def golog(data):
-    print '[' + strftime("%m/%d/%Y %H:%M:%S") + '] ' + str(data)
-
-
-def humanize_time(secs):
-    mins, secs = divmod(secs, 60)
-    hours, mins = divmod(mins, 60)
-    return '%02d:%02d:%02d' % (hours, mins, secs)
-
-
-def crop_string(before, length):
-    after = str(before)
-    if len(after) > length:
-        half_length = int(length / 2) - 1
-        after = after[:half_length] + '..' + after[-half_length:]
-    return after
 
 
 class Daemon():

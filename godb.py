@@ -83,7 +83,6 @@ class DB():
 
     def __init__(self, path):
         self.path = path
-        print 'DB file: %s' % (self.path,)
         self.initialize_tables()
 
     def initialize_tables(self):
