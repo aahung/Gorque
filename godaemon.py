@@ -52,10 +52,11 @@ class Daemon():
         command = ('''for i in %s;'''
                    '''do ssh ${i} 'mem=$(nvidia-smi | grep 4799 | cut -d"/" '''
                    '''-f3 | cut -d"|" -f2 | sed -e "s/^[ \t]*//"); '''
-                   '''if [[ "$mem" == 10MiB* ]]; then echo $(hostname) | '''
+                   '''if [[ "$mem" == 11MiB* ]]; then echo $(hostname) | '''
                    '''cut -d"." -f1; fi'; done;''') % (hosts_str,)
         free_nodes = subprocess.check_output(command, shell=True)
         free_nodes = [x for x in free_nodes.split('\n') if x != '']
+        return free_nodes
 
     def submit_torque_occupy_job(self, job):
         job_template = '''#PBS -S /bin/bash
