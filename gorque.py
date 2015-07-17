@@ -125,7 +125,7 @@ class Gorque:
         job = db.fetch_by_id(rowid)
         if not job:
             print 'no such a job'
-        if job.get('pid') is not None:
+        if job.get('pid'):
             print 'killing process %s and %s' % (str(job.get('pid')),
                                                  str(job.get('pid') + 1))
             os.system('kill -9 ' + str(job.get('pid')))
@@ -142,7 +142,8 @@ class Gorque:
                 print gpu_pid
                 os.system('''ssh %s 'kill -9 %s' ''' % (job.get('node'),
                                                         gpu_pid))
-        self.kill_torque_job(job.get('torque_pid'))
+        if job.get('torque_pid'):
+            self.kill_torque_job(job.get('torque_pid'))
         job.set('mode', 'K')
         job.set('end_time', int(time.time()))
         db.update(job)
