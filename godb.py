@@ -139,7 +139,11 @@ class DB():
         conn.close()
         job.rowid = rowid
         for key, value in zip(columns, row):
-            job.set(key, DB.Job.static_key_value_type()[key](value))
+            if not value:
+                pass
+            else:
+                value = DB.Job.static_key_value_type()[key](value)
+            job.set(key, value)
         return job
 
     def fetch_waiting(self):
