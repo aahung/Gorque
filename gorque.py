@@ -73,7 +73,7 @@ class Gorque:
                     continue
             else:
                 time_passed = humanize_time(0)
-            print template.format(job.rowid, crop_string(job.get('name', 20)),
+            print template.format(job.rowid, crop_string(job.get('name'), 20),
                                   job.get('user'), str(job.get('priority')),
                                   time_passed, mode, job.get('node'),
                                   str(job.get('cpus')),
