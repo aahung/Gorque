@@ -1,4 +1,4 @@
-#! /usr/bin/python -u
+#! /usr/bin/env python2.7
 
 import subprocess
 import os
@@ -6,31 +6,14 @@ import time
 import goconfig
 from godb import DB
 from multiprocessing import Process
-from time import strftime
+from time import sleep
+from golog import golog
 
 
 def background_run_job(job, node):
     config = goconfig.Config()
     daemon = Daemon(config)
     daemon.run_job(job, node)
-
-
-def golog(data):
-    print '[' + strftime("%m/%d/%Y %H:%M:%S") + '] ' + str(data)
-
-
-def humanize_time(secs):
-    mins, secs = divmod(secs, 60)
-    hours, mins = divmod(mins, 60)
-    return '%02d:%02d:%02d' % (hours, mins, secs)
-
-
-def crop_string(before, length):
-    after = str(before)
-    if len(after) > length:
-        half_length = int(length / 2) - 1
-        after = after[:half_length] + '..' + after[-half_length:]
-    return after
 
 
 class Daemon():
@@ -66,47 +49,59 @@ class Daemon():
 
     def get_free_nodes(self):
         hosts_str = str.join(' ', self.config.hosts)
-        command = ('''for i in %s;
-                     do ssh ${i} 'mem=$(nvidia-smi | grep 4799 | cut -d"/" '''
+        command = ('''for i in %s;'''
+                   '''do ssh ${i} 'mem=$(nvidia-smi | grep 4799 | cut -d"/" '''
                    '''-f3 | cut -d"|" -f2 | sed -e "s/^[ \t]*//"); '''
-                   '''if [[ "$mem" == 10MiB* ]]; then echo $(hostname) | '''
+                   '''if [[ "$mem" == 11MiB* ]]; then echo $(hostname) | '''
                    '''cut -d"." -f1; fi'; done;''') % (hosts_str,)
         free_nodes = subprocess.check_output(command, shell=True)
         free_nodes = [x for x in free_nodes.split('\n') if x != '']
+        return free_nodes
+
+    def kill_torque_job(self, torque_pid):
+        os.system('/opt/torque/bin/qdel %d' % (torque_pid,))
 
     def submit_torque_occupy_job(self, job):
         job_template = '''#PBS -S /bin/bash
-#PBS -N gorque_job_here
+#PBS -N gorque_shadow_%d
 #PBS -l nodes=%s:ppn=%s
 #PBS -q default
 
 sleep 50000000'''
         job_script_file_path = '/tmp/gorque_torque_%s.sh' % (str(job.rowid),)
         job_script_file = open(job_script_file_path, 'w')
-        job_script_file.write(job_template % (job.get('node'),
-                                              job.get('cpus')))
+        job_script_file.write(job_template % (job.rowid, job.get('node'),
+                                              str(job.get('cpus'))))
         job_script_file.close()
         try:
-            torque_pid = subprocess.check_output(['/usr/bin/sudo', '-u',
-                                                  job.get('user'),
-                                                  '/opt/torque/bin/qsub',
-                                                  job_script_file_path])
-            torque_pid = torque_pid.split('.')[0]
+            command = ('''/sbin/runuser -l %s -c '/opt/torque/bin/qsub'''
+                       ''' %s' ''') % (job.get('user'),
+                                       job_script_file_path)
+            process = subprocess.Popen(command, shell=True,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+            out, err = process.communicate()
+            if len(err) != 0:
+                golog('<%d> shadow job error: %s' % (job.rowid, err))
+            torque_pid = out.split('.')[0]
             return int(torque_pid)
         except Exception, e:
-            golog(e)
+            golog('<%d> shadow job error: %s' % (job.rowid, e))
             exit(2)
 
     def run_job(self, job, node):
-        golog('submit shadow job (torque)')
+        job.set('node', node)
+        golog('<%d> submitting shadow job (torque)' % (job.rowid,))
         torque_pid = self.submit_torque_occupy_job(job)
         template = '''/sbin/runuser -l {0} -c 'ssh {1} "/bin/bash {2}"' '''
-        tmp_script_path = '%s%s%s_%s.sh' % (goconfig.GORQUE_DIR, 'script',
-                                            job.get('user'), str(job.rowid))
+        tmp_script_path = '%s%s_%s.sh' % (self.config.job_script_dir,
+                                          job.get('user'), str(job.rowid))
+        golog('<%d> script content: \n%s' % (job.rowid, job.get('script')))
+        golog('<%d> generating tmp script file' % (job.rowid,))
         f = open(tmp_script_path, 'w')
         f.write(job.get('script'))
         f.close()
-        golog('job ' + str(job.rowid) + ' executing')
+        golog('<%d> executing' % (job.rowid,))
         command = template.format(job.get('user'), node, tmp_script_path)
         # run
         process = subprocess.Popen(command, shell=True,
@@ -117,10 +112,22 @@ sleep 50000000'''
         job.set('pid', process.pid)
         job.set('torque_pid', torque_pid)
         self.db.update(job)
+        golog('<%d> finished' % (job.rowid,))
+        # output logs
         out, err = process.communicate()
+        f = open('%s%d.out' % (self.config.job_log_dir, job.rowid,), 'w')
+        f.write(out)
+        f.close()
+        f = open('%s%d.err' % (self.config.job_log_dir, job.rowid,), 'w')
+        f.write(err)
+        f.close()
         # save the output or error
         # remove the sh file
+        golog('<%d> removing tmp script file' % (job.rowid,))
         os.remove(tmp_script_path)
+        golog('<%d> killing shadow job (torque)' % (job.rowid,))
+        if job.get('torque_pid'):
+            self.kill_torque_job(job.get('torque_pid'))
         # finish the job
         job.set('mode', 'F')
         job.set('end_time', int(time.time()))
@@ -139,11 +146,17 @@ sleep 50000000'''
                         p = Process(target=background_run_job,
                                     args=(qualified_jobs[i], free_nodes[i]))
                         p.start()
+                else:
+                    golog('no free nodes available')
+            else:
+                golog('no qualified jobs found')
+            sleep(10)
 
 
 def main():
     config = goconfig.Config()
     daemon = Daemon(config)
+    print 'Gorque daemon on'
     daemon.scan()
 
 if __name__ == "__main__":

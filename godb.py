@@ -1,4 +1,4 @@
-#! /usr/bin/python -u
+#! /usr/bin/env python2.7
 
 import sqlite3
 
@@ -34,15 +34,16 @@ class DB():
         # torque_pid = int()
 
         rowid = None
-        dict = {}
+        dictionary = None
 
-        def __init__(self, dict=None):
+        def __init__(self, dictionary=None):
+            self.dictionary = dict()
             for key in DB.Job.static_keys():
-                    self.dict[key] = None
-            if dict:
-                for key, value in zip(dict.keys(), dict.values()):
+                    self.dictionary[key] = None
+            if dictionary:
+                for key, value in zip(dictionary.keys(), dictionary.values()):
                     if key in DB.Job.static_keys():
-                        self.dict[key] = value
+                        self.dictionary[key] = value
 
         @staticmethod
         def static_key_value_type():
@@ -60,46 +61,63 @@ class DB():
                     'torque_pid': int}
 
         @staticmethod
+        def convert_to_type_with_key(key, value, convert_none=False):
+            t = DB.Job.static_key_value_type()[key]
+            if value:
+                return t(value)
+            else:
+                if convert_none:
+                    return t()
+                else:
+                    return None
+
+        @staticmethod
         def static_keys():
-            return DB.static_key_value_type().keys()
+            return DB.Job.static_key_value_type().keys()
 
         def keys(self):
-            return [self.dict.keys()]
+            return self.dictionary.keys()
 
         def values(self):
-            return self.dict.values()
+            return self.dictionary.values()
 
-        def get(self, name):
+        def get(self, name, convert_none=False):
             if name not in DB.Job.static_keys():
                 raise Exception('no such key' % (name,))
-            return self.dict[name]
+            if convert_none:
+                return DB.Job.convert_to_type_with_key(name,
+                                                       self.dictionary[name],
+                                                       True)
+            else:
+                return self.dictionary[name]
 
         def set(self, name, value):
             if name not in DB.Job.static_keys():
                 raise Exception('no such key' % (name,))
-            self.dict[name] = value
+            self.dictionary[name] = DB.Job.convert_to_type_with_key(name,
+                                                                    value)
 
-    path = ''
+    path = None
 
     def __init__(self, path):
         self.path = path
         self.initialize_tables()
 
     def initialize_tables(self):
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute('''SELECT name FROM SQLITE_MASTER
-                      WHERE type = 'table' ''')
-            if c.fetchone() is None:
-                print 'creating database'
-                c.execute('''CREATE TABLE queue
-                    (user TEXT, script BLOB, priority INTEGER,
-                        submit_time INTEGER, start_time INTEGER,
-                        end_time INTEGER,
-                        mode TEXT, node TEXT, name TEXT, pid INTEGER,
-                        cpus INTEGER, torque_pid INTEGER)''')
-                conn.commit()
-                conn.close()
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute('''SELECT name FROM SQLITE_MASTER
+                  WHERE type = 'table' ''')
+        if c.fetchone() is None:
+            print 'creating database'
+            c.execute('''CREATE TABLE queue
+                (user TEXT, script BLOB, priority INTEGER,
+                    submit_time INTEGER, start_time INTEGER,
+                    end_time INTEGER,
+                    mode TEXT, node TEXT, name TEXT, pid INTEGER,
+                    cpus INTEGER, torque_pid INTEGER)''')
+            conn.commit()
+        conn.close()
 
     def fetch(self, desc=False, max=-1):
         '''
@@ -110,35 +128,41 @@ class DB():
         columns.append('ROWID')
         command = '''SELECT %s FROM queue''' % (str.join(', ', columns),)
         if desc:
-            ''' ORDER BY ROWID DESC'''
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute(command)
-            jobs = []
-            rows = c.fetchall()
-            for row in rows:
-                job = DB.Job()
-                job.rowid = int(row[-1])
-                for key, value in zip(columns[:-1], row[:-1]):
+            command = command + ''' ORDER BY ROWID DESC'''
+        jobs = []
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute(command)
+        rows = c.fetchall()
+        for row in rows:
+            job = DB.Job()
+            job.rowid = int(row[-1])
+            for key, value in zip(columns[:-1], row[:-1]):
                     job.set(key, value)
-                jobs.append(job)
-            conn.close()
-            return jobs
+            jobs.append(job)
+        conn.close()
+        return jobs
 
     def fetch_by_id(self, rowid):
         columns = DB.Job.static_keys()
         command = '''SELECT %s FROM queue
                      WHERE ROWID = ?''' % (str.join(', ', columns),)
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute(command, rowid)
-            row = c.fetchone()
-            conn.close()
-            job = DB.Job()
-            job.rowid = rowid
-            for key, value in zip(columns, row):
-                job.set(key, DB.static_key_value_type()[key](value))
-            return job
+        job = DB.Job()
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute(command, (rowid,))
+        row = c.fetchone()
+        if not row:
+            return None
+        conn.close()
+        job.rowid = rowid
+        for key, value in zip(columns, row):
+            if not value:
+                pass
+            else:
+                value = DB.Job.static_key_value_type()[key](value)
+            job.set(key, value)
+        return job
 
     def fetch_waiting(self):
         columns = DB.Job.static_keys()
@@ -146,19 +170,19 @@ class DB():
         command = '''SELECT %s FROM queue
                      WHERE mode = 'Q'
                      ORDER BY priority DESC''' % (str.join(', ', columns),)
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute(command)
-            jobs = []
-            rows = c.fetchall()
-            for row in rows:
-                job = DB.Job()
-                job.rowid = int(row[-1])
-                for key, value in zip(columns[:-1], row[:-1]):
-                    job.set(key, value)
-                jobs.append(job)
-            conn.close()
-            return jobs
+        jobs = []
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute(command)
+        rows = c.fetchall()
+        for row in rows:
+            job = DB.Job()
+            job.rowid = int(row[-1])
+            for key, value in zip(columns[:-1], row[:-1]):
+                job.set(key, value)
+            jobs.append(job)
+        conn.close()
+        return jobs
 
     def fetch_running(self):
         columns = DB.Job.static_keys()
@@ -166,55 +190,55 @@ class DB():
         command = '''SELECT %s FROM queue
                      WHERE mode = 'R'
                      ORDER BY priority DESC''' % (str.join(', ', columns),)
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute(command)
-            jobs = []
-            rows = c.fetchall()
-            for row in rows:
-                job = DB.Job()
-                job.rowid = int(row[-1])
-                for key, value in zip(columns[:-1], row[:-1]):
-                    job.set(key, value)
-                jobs.append(job)
-            conn.close()
-            return jobs
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute(command)
+        jobs = []
+        rows = c.fetchall()
+        for row in rows:
+            job = DB.Job()
+            job.rowid = int(row[-1])
+            for key, value in zip(columns[:-1], row[:-1]):
+                job.set(key, value)
+            jobs.append(job)
+        conn.close()
+        return jobs
 
     def insert(self, job):
         key_str = str.join(', ', job.keys())
         question_str = str.join(', ', ['?'] * len(job.keys()))
         command = '''INSERT INTO queue (%s)
             VALUES (%s)''' % (key_str, question_str)
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute(command, tuple(job.values()))
-            conn.commit()
-            c.execute('''SELECT ROWID FROM queue
-                         ORDER BY ROWID DESC LIMIT 1''')
-            rowid = tuple(c.fetchone())[0]
-            conn.close()
-            return rowid
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute(command, tuple(job.values()))
+        conn.commit()
+        c.execute('''SELECT ROWID FROM queue
+                     ORDER BY ROWID DESC LIMIT 1''')
+        rowid = tuple(c.fetchone())[0]
+        conn.close()
+        return rowid
 
     def update(self, job):
         terms = []
         for key in job.keys():
-            terms.append('%s = ?', (key,))
+            terms.append('%s = ?' % (key,))
         command = '''UPDATE queue SET %s
                      WHERE ROWID = ?''' % (str.join(', ', terms),)
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute(command, tuple(job.values() + [job.rowid]))
-            conn.commit()
-            conn.close()
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute(command, tuple(job.values() + [job.rowid]))
+        conn.commit()
+        conn.close()
 
     def set(self, rowid, key, value):
         command = '''UPDATE queue SET %s = ?
                      WHERE ROWID = ?''' % (key,)
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute(command, (DB.static_key_value_type()[key](value), rowid))
-            conn.commit()
-            conn.close()
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute(command, (DB.Job.static_key_value_type()[key](value), rowid))
+        conn.commit()
+        conn.close()
 
     def prioritize(self, rowid, priority):
         self.set(rowid, 'priority', priority)
