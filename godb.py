@@ -87,20 +87,20 @@ class DB():
         self.initialize_tables()
 
     def initialize_tables(self):
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute('''SELECT name FROM SQLITE_MASTER
-                      WHERE type = 'table' ''')
-            if c.fetchone() is None:
-                print 'creating database'
-                c.execute('''CREATE TABLE queue
-                    (user TEXT, script BLOB, priority INTEGER,
-                        submit_time INTEGER, start_time INTEGER,
-                        end_time INTEGER,
-                        mode TEXT, node TEXT, name TEXT, pid INTEGER,
-                        cpus INTEGER, torque_pid INTEGER)''')
-                conn.commit()
-            conn.close()
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute('''SELECT name FROM SQLITE_MASTER
+                  WHERE type = 'table' ''')
+        if c.fetchone() is None:
+            print 'creating database'
+            c.execute('''CREATE TABLE queue
+                (user TEXT, script BLOB, priority INTEGER,
+                    submit_time INTEGER, start_time INTEGER,
+                    end_time INTEGER,
+                    mode TEXT, node TEXT, name TEXT, pid INTEGER,
+                    cpus INTEGER, torque_pid INTEGER)''')
+            conn.commit()
+        conn.close()
 
     def fetch(self, desc=False, max=-1):
         '''
@@ -113,17 +113,17 @@ class DB():
         if desc:
             ''' ORDER BY ROWID DESC'''
         jobs = []
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute(command)
-            rows = c.fetchall()
-            for row in rows:
-                job = DB.Job()
-                job.rowid = int(row[-1])
-                for key, value in zip(columns[:-1], row[:-1]):
-                    job.set(key, value)
-                jobs.append(job)
-            conn.close()
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute(command)
+        rows = c.fetchall()
+        for row in rows:
+            job = DB.Job()
+            job.rowid = int(row[-1])
+            for key, value in zip(columns[:-1], row[:-1]):
+                job.set(key, value)
+            jobs.append(job)
+        conn.close()
         return jobs
 
     def fetch_by_id(self, rowid):
@@ -131,14 +131,14 @@ class DB():
         command = '''SELECT %s FROM queue
                      WHERE ROWID = ?''' % (str.join(', ', columns),)
         job = DB.Job()
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute(command, rowid)
-            row = c.fetchone()
-            conn.close()
-            job.rowid = rowid
-            for key, value in zip(columns, row):
-                job.set(key, DB.static_key_value_type()[key](value))
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute(command, rowid)
+        row = c.fetchone()
+        conn.close()
+        job.rowid = rowid
+        for key, value in zip(columns, row):
+            job.set(key, DB.static_key_value_type()[key](value))
         return job
 
     def fetch_waiting(self):
@@ -148,17 +148,17 @@ class DB():
                      WHERE mode = 'Q'
                      ORDER BY priority DESC''' % (str.join(', ', columns),)
         jobs = []
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute(command)
-            rows = c.fetchall()
-            for row in rows:
-                job = DB.Job()
-                job.rowid = int(row[-1])
-                for key, value in zip(columns[:-1], row[:-1]):
-                    job.set(key, value)
-                jobs.append(job)
-            conn.close()
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute(command)
+        rows = c.fetchall()
+        for row in rows:
+            job = DB.Job()
+            job.rowid = int(row[-1])
+            for key, value in zip(columns[:-1], row[:-1]):
+                job.set(key, value)
+            jobs.append(job)
+        conn.close()
         return jobs
 
     def fetch_running(self):
@@ -167,34 +167,34 @@ class DB():
         command = '''SELECT %s FROM queue
                      WHERE mode = 'R'
                      ORDER BY priority DESC''' % (str.join(', ', columns),)
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute(command)
-            jobs = []
-            rows = c.fetchall()
-            for row in rows:
-                job = DB.Job()
-                job.rowid = int(row[-1])
-                for key, value in zip(columns[:-1], row[:-1]):
-                    job.set(key, value)
-                jobs.append(job)
-            conn.close()
-            return jobs
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute(command)
+        jobs = []
+        rows = c.fetchall()
+        for row in rows:
+            job = DB.Job()
+            job.rowid = int(row[-1])
+            for key, value in zip(columns[:-1], row[:-1]):
+                job.set(key, value)
+            jobs.append(job)
+        conn.close()
+        return jobs
 
     def insert(self, job):
         key_str = str.join(', ', job.keys())
         question_str = str.join(', ', ['?'] * len(job.keys()))
         command = '''INSERT INTO queue (%s)
             VALUES (%s)''' % (key_str, question_str)
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute(command, tuple(job.values()))
-            conn.commit()
-            c.execute('''SELECT ROWID FROM queue
-                         ORDER BY ROWID DESC LIMIT 1''')
-            rowid = tuple(c.fetchone())[0]
-            conn.close()
-            return rowid
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute(command, tuple(job.values()))
+        conn.commit()
+        c.execute('''SELECT ROWID FROM queue
+                     ORDER BY ROWID DESC LIMIT 1''')
+        rowid = tuple(c.fetchone())[0]
+        conn.close()
+        return rowid
 
     def update(self, job):
         terms = []
@@ -202,20 +202,20 @@ class DB():
             terms.append('%s = ?', (key,))
         command = '''UPDATE queue SET %s
                      WHERE ROWID = ?''' % (str.join(', ', terms),)
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute(command, tuple(job.values() + [job.rowid]))
-            conn.commit()
-            conn.close()
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute(command, tuple(job.values() + [job.rowid]))
+        conn.commit()
+        conn.close()
 
     def set(self, rowid, key, value):
         command = '''UPDATE queue SET %s = ?
                      WHERE ROWID = ?''' % (key,)
-        with sqlite3.connect(self.path) as conn:
-            c = conn.cursor()
-            c.execute(command, (DB.static_key_value_type()[key](value), rowid))
-            conn.commit()
-            conn.close()
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        c.execute(command, (DB.static_key_value_type()[key](value), rowid))
+        conn.commit()
+        conn.close()
 
     def prioritize(self, rowid, priority):
         self.set(rowid, 'priority', priority)
