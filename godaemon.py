@@ -144,6 +144,7 @@ sleep 50000000'''
 def main():
     config = goconfig.Config()
     daemon = Daemon(config)
+    print 'Gorque daemon on'
     daemon.scan()
 
 if __name__ == "__main__":
