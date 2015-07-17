@@ -64,7 +64,7 @@ class DB():
             return DB.Job.static_key_value_type().keys()
 
         def keys(self):
-            return [self.dict.keys()]
+            return self.dict.keys()
 
         def values(self):
             return self.dict.values()
