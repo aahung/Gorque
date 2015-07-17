@@ -5,6 +5,7 @@ import json
 GORQUE_DIR = '/etc/gorque/'
 CONFIG_FILE = GORQUE_DIR + 'gorque.json'
 DB_FILE = GORQUE_DIR + 'gorque.db'
+JOB_SCRIPT_DIR = GORQUE_DIR + 'scripts/'
 
 
 class Config():

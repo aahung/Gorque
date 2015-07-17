@@ -102,8 +102,8 @@ sleep 50000000'''
         golog('submit shadow job (torque)')
         torque_pid = self.submit_torque_occupy_job(job)
         template = '''/sbin/runuser -l {0} -c 'ssh {1} "/bin/bash {2}"' '''
-        tmp_script_path = '%s%s%s_%s.sh' % (goconfig.GORQUE_DIR, 'script',
-                                            job.get('user'), str(job.rowid))
+        tmp_script_path = '%s%s_%s.sh' % (goconfig.JOB_SCRIPT_DIR,
+                                          job.get('user'), str(job.rowid))
         f = open(tmp_script_path, 'w')
         f.write(job.get('script'))
         f.close()
