@@ -34,9 +34,10 @@ class DB():
         # torque_pid = int()
 
         rowid = None
-        dictionary = dict()
+        dictionary = None
 
         def __init__(self, dictionary=None):
+            self.dictionary = dict()
             for key in DB.Job.static_keys():
                     self.dictionary[key] = None
             if dictionary:
@@ -79,7 +80,7 @@ class DB():
                 raise Exception('no such key' % (name,))
             self.dictionary[name] = value
 
-    path = ''
+    path = None
 
     def __init__(self, path):
         self.path = path
