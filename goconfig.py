@@ -36,7 +36,7 @@ class Config():
         if type(config['hosts']) is not list:
             raise Config.ConfigException('Invalid value of key "hosts"')
         for host in config['hosts']:
-            if type(host) is not str:
+            if type(host) is not str and type(host) is not unicode:
                 message = 'Invalid value of key "hosts": %s' % (str(host),)
                 raise Config.ConfigException(message)
         self.hosts = config['hosts']
