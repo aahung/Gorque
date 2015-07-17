@@ -236,7 +236,7 @@ class DB():
                      WHERE ROWID = ?''' % (key,)
         conn = sqlite3.connect(self.path)
         c = conn.cursor()
-        c.execute(command, (DB.static_key_value_type()[key](value), rowid))
+        c.execute(command, (DB.Job.static_key_value_type()[key](value), rowid))
         conn.commit()
         conn.close()
 
