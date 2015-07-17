@@ -100,7 +100,7 @@ class DB():
                         mode TEXT, node TEXT, name TEXT, pid INTEGER,
                         cpus INTEGER, torque_pid INTEGER)''')
                 conn.commit()
-                conn.close()
+            conn.close()
 
     def fetch(self, desc=False, max=-1):
         '''
@@ -112,10 +112,10 @@ class DB():
         command = '''SELECT %s FROM queue''' % (str.join(', ', columns),)
         if desc:
             ''' ORDER BY ROWID DESC'''
+        jobs = []
         with sqlite3.connect(self.path) as conn:
             c = conn.cursor()
             c.execute(command)
-            jobs = []
             rows = c.fetchall()
             for row in rows:
                 job = DB.Job()
@@ -124,22 +124,22 @@ class DB():
                     job.set(key, value)
                 jobs.append(job)
             conn.close()
-            return jobs
+        return jobs
 
     def fetch_by_id(self, rowid):
         columns = DB.Job.static_keys()
         command = '''SELECT %s FROM queue
                      WHERE ROWID = ?''' % (str.join(', ', columns),)
+        job = DB.Job()
         with sqlite3.connect(self.path) as conn:
             c = conn.cursor()
             c.execute(command, rowid)
             row = c.fetchone()
             conn.close()
-            job = DB.Job()
             job.rowid = rowid
             for key, value in zip(columns, row):
                 job.set(key, DB.static_key_value_type()[key](value))
-            return job
+        return job
 
     def fetch_waiting(self):
         columns = DB.Job.static_keys()
