@@ -147,7 +147,6 @@ class Gorque:
         job.set('mode', 'K')
         job.set('end_time', int(time.time()))
         db.update(job)
-        self.conn.commit()
 
     def log_to_file(self, user, rowid, out, err, job_name):
         directory = '/home/' + user + '/gorque_log/'
