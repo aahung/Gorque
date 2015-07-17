@@ -6,7 +6,6 @@ import time
 import goconfig
 from godb import DB
 from multiprocessing import Process
-from time import strftime
 from time import sleep
 from golog import golog
 
@@ -50,8 +49,8 @@ class Daemon():
 
     def get_free_nodes(self):
         hosts_str = str.join(' ', self.config.hosts)
-        command = ('''for i in %s;
-                     do ssh ${i} 'mem=$(nvidia-smi | grep 4799 | cut -d"/" '''
+        command = ('''for i in %s;'''
+                   '''do ssh ${i} 'mem=$(nvidia-smi | grep 4799 | cut -d"/" '''
                    '''-f3 | cut -d"|" -f2 | sed -e "s/^[ \t]*//"); '''
                    '''if [[ "$mem" == 10MiB* ]]; then echo $(hostname) | '''
                    '''cut -d"." -f1; fi'; done;''') % (hosts_str,)
