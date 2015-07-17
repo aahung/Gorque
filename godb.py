@@ -111,7 +111,7 @@ class DB():
         columns.append('ROWID')
         command = '''SELECT %s FROM queue''' % (str.join(', ', columns),)
         if desc:
-            ''' ORDER BY ROWID DESC'''
+            command = command + ''' ORDER BY ROWID DESC'''
         jobs = []
         conn = sqlite3.connect(self.path)
         c = conn.cursor()
