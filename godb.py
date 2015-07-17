@@ -120,7 +120,10 @@ class DB():
             job = DB.Job()
             job.rowid = int(row[-1])
             for key, value in zip(columns[:-1], row[:-1]):
-                job.set(key, value)
+                if value:
+                    job.set(key, DB.Job.static_key_value_type()[key](value))
+                else:
+                    job.set(key, None)
             jobs.append(job)
         conn.close()
         return jobs
