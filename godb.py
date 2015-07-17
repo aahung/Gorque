@@ -147,10 +147,10 @@ class DB():
         command = '''SELECT %s FROM queue
                      WHERE mode = 'Q'
                      ORDER BY priority DESC''' % (str.join(', ', columns),)
+        jobs = []
         with sqlite3.connect(self.path) as conn:
             c = conn.cursor()
             c.execute(command)
-            jobs = []
             rows = c.fetchall()
             for row in rows:
                 job = DB.Job()
@@ -159,7 +159,7 @@ class DB():
                     job.set(key, value)
                 jobs.append(job)
             conn.close()
-            return jobs
+        return jobs
 
     def fetch_running(self):
         columns = DB.Job.static_keys()
