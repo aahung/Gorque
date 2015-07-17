@@ -7,7 +7,7 @@ CONFIG_FILE = GORQUE_DIR + 'gorque.json'
 DB_FILE = GORQUE_DIR + 'gorque.db'
 
 
-class Config(object):
+class Config():
 
     class ConfigException(Exception):
 
@@ -24,7 +24,7 @@ class Config(object):
         try:
             self.validate_and_load(json.load(f))
         except Exception, e:
-            print(e.message)
+            print(e)
             exit(-1)
 
     def validate_and_load(self, config):
