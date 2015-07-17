@@ -12,7 +12,7 @@ class Config():
     class ConfigException(Exception):
 
         def __init__(self, message):
-            self.message = 'ConfigException: ' + message
+            super('ConfigException: ' + message).__init__()
 
     # config variables
     hosts = []
