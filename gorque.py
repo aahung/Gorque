@@ -48,9 +48,9 @@ class Gorque:
         jobs = []
         db = DB(goconfig.DB_FILE)
         if all:
-            jobs = db.fetch(max=100)
-        else:
             jobs = db.fetch(desc=True)
+        else:
+            jobs = db.fetch(max=100)
         print template.format('-' * 4, '-' * 20, '-' * 10, '-' * 10, '-' * 10,
                               '-' * 6, '-' * 13, '-' * 6, '-' * 13)
         print template.format('Id', 'Name', 'User', 'Priority', 'Time Use',
