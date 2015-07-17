@@ -7,6 +7,7 @@ import goconfig
 from godb import DB
 from multiprocessing import Process
 from time import strftime
+from time import sleep
 
 
 def background_run_job(job, node):
@@ -139,6 +140,11 @@ sleep 50000000'''
                         p = Process(target=background_run_job,
                                     args=(qualified_jobs[i], free_nodes[i]))
                         p.start()
+                else:
+                    golog('no free nodes available')
+            else:
+                golog('no qualified jobs found')
+            sleep(10)
 
 
 def main():
