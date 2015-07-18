@@ -83,15 +83,16 @@ sleep 50000000'''
 
     def run_job(self, job, node):
         job.set('node', node)
-        golog('submit shadow job (torque)')
+        golog('<%d> submit shadow job (torque)' % (job.rowid,))
         torque_pid = self.submit_torque_occupy_job(job)
         template = '''/sbin/runuser -l {0} -c 'ssh {1} "/bin/bash {2}"' '''
         tmp_script_path = '%s%s_%s.sh' % (goconfig.JOB_SCRIPT_DIR,
                                           job.get('user'), str(job.rowid))
+        golog('<%d> script content: \n%s' % (job.rowid, job.get('script')))
         f = open(tmp_script_path, 'w')
         f.write(job.get('script'))
         f.close()
-        golog('job ' + str(job.rowid) + ' executing')
+        golog('<%d> executing' % (job.rowid,))
         command = template.format(job.get('user'), node, tmp_script_path)
         # run
         process = subprocess.Popen(command, shell=True,
@@ -103,6 +104,7 @@ sleep 50000000'''
         job.set('torque_pid', torque_pid)
         self.db.update(job)
         out, err = process.communicate()
+        golog('<%d> finished' % (job.rowid,))
         # save the output or error
         # remove the sh file
         os.remove(tmp_script_path)
