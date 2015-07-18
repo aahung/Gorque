@@ -5,6 +5,9 @@ import json
 GORQUE_DIR = '/etc/gorque/'
 CONFIG_FILE = GORQUE_DIR + 'gorque.json'
 DB_FILE = GORQUE_DIR + 'gorque.db'
+
+# JOB_SCRIPT_DIR folder should be
+# able to be accessed by nodes
 JOB_SCRIPT_DIR = '/share/apps/gorque_scripts/'
 
 
