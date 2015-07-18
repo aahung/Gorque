@@ -57,10 +57,10 @@ class Config():
         if type(config['job_script_dir']) is not unicode:
             raise Config.ConfigException('Invalid value of '
                                          'key "job_script_dir"')
+        self.job_script_dir = config['job_script_dir']
         if not os.path.isdir(self.job_script_dir):
             raise Config.ConfigException('%s is not a directory'
                                          % (self.job_script_dir,))
-        self.job_script_dir = config['job_script_dir']
         # check if job_log_dir is in
         if 'job_log_dir' not in keys:
             raise Config.ConfigException('missing key "job_log_dir"')
