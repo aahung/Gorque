@@ -1,4 +1,4 @@
-#! /usr/bin/python -u
+#! /usr/bin/env python2.7
 
 import sqlite3
 

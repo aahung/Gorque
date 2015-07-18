@@ -1,4 +1,4 @@
-#! /usr/bin/python -u
+#! /usr/bin/env python2.7
 
 import os
 import subprocess
@@ -117,7 +117,7 @@ class Gorque:
             self.insert_job(name, user, priority, script, cpus)
 
     def kill_torque_job(self, torque_pid):
-        os.system('/opt/torque/bin/qdel ' + torque_pid)
+        os.system('/opt/torque/bin/qdel %d' % (torque_pid,))
 
     def prioritize_job(self, rowid, priority):
         db = DB(goconfig.DB_FILE)
