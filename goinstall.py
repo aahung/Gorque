@@ -34,7 +34,9 @@ os.system('chmod u=rwx,go=xr,+s ./cpp/goprior')
 os.system('chmod u=rwx,go=xr,+s ./cpp/gostat')
 os.system('chmod u=rwx,go=xr,+s ./cpp/gosub')
 
-os.rename('./cpp/godel', '/usr/bin/godel')
-os.rename('./cpp/goprior', '/usr/bin/goprior')
-os.rename('./cpp/gostat', '/usr/bin/gostat')
-os.rename('./cpp/gosub', '/usr/bin/gosub')
+os.system('mv ./cpp/godel /usr/bin/godel')
+os.system('mv ./cpp/goprior /usr/bin/goprior')
+os.system('mv ./cpp/gostat /usr/bin/gostat')
+os.system('mv ./cpp/gosub /usr/bin/gosub')
+
+os.system('mv ./*.py %s/' % (GODIR,))
