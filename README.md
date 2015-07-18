@@ -29,11 +29,6 @@ make && make altinstall
 
 Then you can use the command `python2.7`.
 
-After that, you may encounter `No module named _sqlite3` error, fix it by
-```sh
-ln -s /usr/lib64/python2.6/lib-dynload/_sqlite3.so /usr/local/lib/python2.7/lib-dynload/
-```
-
 ### Gorque
 
 ```sh
