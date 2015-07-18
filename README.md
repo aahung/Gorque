@@ -35,18 +35,29 @@ ln -s /usr/lib64/python2.6/lib-dynload/_sqlite3.so /usr/local/lib/python2.7/lib-
 ```
 
 ### Gorque
-change the directory path in the code according to your environment.
-```shell
-make all
+
+```sh
+./goinstall.py
 ```
-put all file in directory "production" to the target directory, and run "grant.sh" with root.
-add 
-```shell
-* * * * * /directory/to/gorque/godaemon
+create a folder `/etc/gorque` and create a file named `gorque.json` with content:
+
+```json
+{
+    "hosts": [
+        "compute-0-1",
+        "compute-0-2",
+        "compute-0-3",
+        "compute-0-4"
+    ],
+    "user_jobs": 8,
+    "job_script_dir": "/share/apps/gorque_scripts/",
+    "job_log_dir": "/var/log/gorque/"
+}
 ```
-to ```crontab -e``` to enable gorque gaemon.
 
 ## Usage
+
+run `godaemon.py` in directory where you installed Gorque to as root in the background.
 
 ### Job script
 
