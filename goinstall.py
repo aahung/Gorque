@@ -39,4 +39,4 @@ os.system('mv ./cpp/goprior /usr/bin/goprior')
 os.system('mv ./cpp/gostat /usr/bin/gostat')
 os.system('mv ./cpp/gosub /usr/bin/gosub')
 
-os.system('mv ./*.py %s/' % (GODIR,))
+os.system('cp ./*.py %s/' % (GODIR,))

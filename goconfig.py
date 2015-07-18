@@ -1,6 +1,7 @@
 #! /usr/bin/env python2.7
 
 import json
+import os
 
 GORQUE_DIR = '/etc/gorque/'
 CONFIG_FILE = GORQUE_DIR + 'gorque.json'
@@ -56,6 +57,9 @@ class Config():
         if type(config['job_script_dir']) is not unicode:
             raise Config.ConfigException('Invalid value of '
                                          'key "job_script_dir"')
+        if not os.path.isdir(self.job_script_dir):
+            raise Config.ConfigException('%s is not a directory'
+                                         % (self.job_script_dir,))
         self.job_script_dir = config['job_script_dir']
         # check if job_log_dir is in
         if 'job_log_dir' not in keys:
@@ -64,3 +68,8 @@ class Config():
             raise Config.ConfigException('Invalid value of '
                                          'key "job_log_dir"')
         self.job_log_dir = config['job_log_dir']
+        if not os.path.isdir(self.job_log_dir):
+            raise Config.ConfigException('%s is not a directory'
+                                         % (self.job_log_dir,))
+        if not self.job_log_dir.endswith('/'):
+            self.job_log_dir = self.job_log_dir + '/'
