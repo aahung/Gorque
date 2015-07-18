@@ -58,6 +58,9 @@ class Daemon():
         free_nodes = [x for x in free_nodes.split('\n') if x != '']
         return free_nodes
 
+    def kill_torque_job(self, torque_pid):
+        os.system('/opt/torque/bin/qdel %d' % (torque_pid,))
+
     def submit_torque_occupy_job(self, job):
         job_template = '''#PBS -S /bin/bash
 #PBS -N gorque_job_here
@@ -83,7 +86,7 @@ sleep 50000000'''
 
     def run_job(self, job, node):
         job.set('node', node)
-        golog('<%d> submit shadow job (torque)' % (job.rowid,))
+        golog('<%d> submitting shadow job (torque)' % (job.rowid,))
         torque_pid = self.submit_torque_occupy_job(job)
         template = '''/sbin/runuser -l {0} -c 'ssh {1} "/bin/bash {2}"' '''
         tmp_script_path = '%s%s_%s.sh' % (self.config.job_script_dir,
@@ -117,6 +120,9 @@ sleep 50000000'''
         # remove the sh file
         golog('<%d> removing tmp script file' % (job.rowid,))
         os.remove(tmp_script_path)
+        golog('<%d> killing shadow job (torque)' % (job.rowid,))
+        if job.get('torque_pid'):
+            self.kill_torque_job(job.get('torque_pid'))
         # finish the job
         job.set('mode', 'F')
         job.set('end_time', int(time.time()))
