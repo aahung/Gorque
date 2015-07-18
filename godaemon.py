@@ -74,17 +74,19 @@ sleep 50000000'''
                                               str(job.get('cpus'))))
         job_script_file.close()
         try:
-            command = ('/usr/bin/sudo -u'
-                       ' %s /opt/torque/bin/qsub %s') % (job.get('user'),
-                                                         job_script_file_path)
+            command = ('''/sbin/runuser -l %s -c '/opt/torque/bin/qsub'''
+                       ''' %s' ''') % (job.get('user'),
+                                       job_script_file_path)
             process = subprocess.Popen(command, shell=True,
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE)
             out, err = process.communicate()
+            if len(err) != 0:
+                golog('<%d> shadow job error: %s' % (job.rowid, err))
             torque_pid = out.split('.')[0]
             return int(torque_pid)
         except Exception, e:
-            golog('shadow job error: %s' % (e,))
+            golog('<%d> shadow job error: %s' % (job.rowid, e))
             exit(2)
 
     def run_job(self, job, node):
