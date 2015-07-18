@@ -130,7 +130,7 @@ class Gorque:
     def kill_job(self, user, rowid):
         db = DB(goconfig.DB_FILE)
         job = db.fetch_by_id(rowid)
-        if job.get('user') != user or user != 'root':
+        if job.get('user') != user and user != 'root':
             print 'You do not have permission to kill the job'
             return
         if not job:

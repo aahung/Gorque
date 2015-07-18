@@ -150,7 +150,7 @@ class DB():
         job = DB.Job()
         conn = sqlite3.connect(self.path)
         c = conn.cursor()
-        c.execute(command, rowid)
+        c.execute(command, (rowid,))
         row = c.fetchone()
         if not row:
             return None

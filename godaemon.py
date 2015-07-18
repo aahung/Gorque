@@ -63,11 +63,11 @@ class Daemon():
 
     def submit_torque_occupy_job(self, job):
         job_template = '''#PBS -S /bin/bash
-#PBS -N gorque_job_here
+#PBS -N gorque_shadow_%d
 #PBS -l nodes=%s:ppn=%s
 #PBS -q default
 
-sleep 50000000'''
+sleep 50000000''' % (job.rowid,)
         job_script_file_path = '/tmp/gorque_torque_%s.sh' % (str(job.rowid),)
         job_script_file = open(job_script_file_path, 'w')
         job_script_file.write(job_template % (job.get('node'),
