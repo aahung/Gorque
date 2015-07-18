@@ -89,6 +89,7 @@ sleep 50000000'''
         tmp_script_path = '%s%s_%s.sh' % (goconfig.JOB_SCRIPT_DIR,
                                           job.get('user'), str(job.rowid))
         golog('<%d> script content: \n%s' % (job.rowid, job.get('script')))
+        golog('<%d> generating tmp script file' % (job.rowid,))
         f = open(tmp_script_path, 'w')
         f.write(job.get('script'))
         f.close()
@@ -103,10 +104,18 @@ sleep 50000000'''
         job.set('pid', process.pid)
         job.set('torque_pid', torque_pid)
         self.db.update(job)
-        out, err = process.communicate()
         golog('<%d> finished' % (job.rowid,))
+        # output logs
+        out, err = process.communicate()
+        f = open('/var/www/log/%d.out' % (job.rowid,), 'w')
+        f.write(out)
+        f.close()
+        f = open('/var/www/log/%d.err' % (job.rowid,), 'w')
+        f.write(err)
+        f.close()
         # save the output or error
         # remove the sh file
+        golog('<%d> removing tmp script file' % (job.rowid,))
         os.remove(tmp_script_path)
         # finish the job
         job.set('mode', 'F')
