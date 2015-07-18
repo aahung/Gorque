@@ -107,10 +107,10 @@ sleep 50000000'''
         golog('<%d> finished' % (job.rowid,))
         # output logs
         out, err = process.communicate()
-        f = open('/var/log/gorque/%d.out' % (job.rowid,), 'w')
+        f = open('%s%d.out' % (self.config.job_log_dir, job.rowid,), 'w')
         f.write(out)
         f.close()
-        f = open('/var/log/gorque/%d.err' % (job.rowid,), 'w')
+        f = open('%s%d.err' % (self.config.job_log_dir, job.rowid,), 'w')
         f.write(err)
         f.close()
         # save the output or error

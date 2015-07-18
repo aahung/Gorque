@@ -21,6 +21,7 @@ class Config():
     # JOB_SCRIPT_DIR folder should be
     # able to be accessed by nodes
     job_script_dir = None
+    job_log_dir = None
     # end
 
     def __init__(self):
@@ -56,3 +57,10 @@ class Config():
             raise Config.ConfigException('Invalid value of '
                                          'key "job_script_dir"')
         self.job_script_dir = config['job_script_dir']
+        # check if job_log_dir is in
+        if 'job_log_dir' not in keys:
+            raise Config.ConfigException('missing key "job_log_dir"')
+        if type(config['job_log_dir']) is not unicode:
+            raise Config.ConfigException('Invalid value of '
+                                         'key "job_log_dir"')
+        self.job_log_dir = config['job_log_dir']
