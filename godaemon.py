@@ -68,7 +68,7 @@ sleep 50000000'''
         job_script_file_path = '/tmp/gorque_torque_%s.sh' % (str(job.rowid),)
         job_script_file = open(job_script_file_path, 'w')
         job_script_file.write(job_template % (job.get('node'),
-                                              job.get('cpus')))
+                                              str(job.get('cpus'))))
         job_script_file.close()
         try:
             torque_pid = subprocess.check_output(['/usr/bin/sudo', '-u',
@@ -78,7 +78,7 @@ sleep 50000000'''
             torque_pid = torque_pid.split('.')[0]
             return int(torque_pid)
         except Exception, e:
-            golog(e)
+            golog('shadow job error: %s' % (e,))
             exit(2)
 
     def run_job(self, job, node):

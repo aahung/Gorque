@@ -1,7 +1,7 @@
 # Gorque
 
 ## Intro
-Gorque is used for linux based computer cluster with CUDA-enabled compute nodes. Compute node should have command ```nvidia-smi``` and in my case, GPU free memory is set to ```99MB```.
+Gorque is used for linux based computer cluster with CUDA-enabled compute nodes. Compute node should have command ```nvidia-smi``` and in my case, GPU free memory is set to ```11MB```.
 
 This program is used to schedule GPU job according to 
 1. one compute node could run only one job, 
@@ -9,6 +9,32 @@ This program is used to schedule GPU job according to
 rule. 
 
 ## Install
+
+### Python 2.7+
+
+Gorque relies on Python 2.7 or higher, if you are using CentOS, you may only have Python 2.6. **DO NOT simply upgrade your Python**, since CentOS relies on Python 2.6, you will destroy it.
+Instead of upgrading, we will install a side version Python.
+
+```sh
+yum groupinstall "Development tools"
+yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel
+
+cd /opt
+wget --no-check-certificate https://www.python.org/ftp/python/2.7.10/Python-2.7.10.tar.xz
+tar xf Python-2.7.10.tar.xz
+cd Python-2.7.10
+./configure --prefix=/usr/local
+make && make altinstall
+```
+
+Then you can use the command `python2.7`.
+
+After that, you may encounter `No module named _sqlite3` error, fix it by
+```sh
+ln -s /usr/lib64/python2.6/lib-dynload/_sqlite3.so /usr/local/lib/python2.7/lib-dynload/
+```
+
+### Gorque
 change the directory path in the code according to your environment.
 ```shell
 make all
