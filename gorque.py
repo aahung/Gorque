@@ -127,9 +127,12 @@ class Gorque:
         db = DB(goconfig.DB_FILE)
         db.set(rowid, 'priority', priority)
 
-    def kill_job(self, rowid):
+    def kill_job(self, user, rowid):
         db = DB(goconfig.DB_FILE)
         job = db.fetch_by_id(rowid)
+        if job.user != user or user != 'root':
+            print 'You do not have permission to kill the job'
+            return
         if not job:
             print 'no such a job'
         if job.get('pid'):
@@ -189,9 +192,9 @@ def main(argv):
         q = Gorque()
         q.submit_job(user, script_path)
         sys.exit(0)
-    if delete_rowid is not None:
+    if user is not None and delete_rowid is not None:
         q = Gorque()
-        q.kill_job(delete_rowid)
+        q.kill_job(user, delete_rowid)
         sys.exit(0)
 
 if __name__ == "__main__":

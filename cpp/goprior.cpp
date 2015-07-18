@@ -5,17 +5,16 @@
 #include <stdlib.h>
 #include <string>
 #include <sys/types.h>
+#include "parameter.h"
 
 int main(int argc, char *argv[]) {
-	std::string default_directory("/share/apps/gorque/");
+	std::string default_directory(GODIR);
 	if ( argc != 2 ) {
     	std::cout << "usage: " << argv[0] << " <job id>";
     	exit(0);
 	}
 	std::string jobid(argv[1]);
-	char * user_char = getlogin();
-	std::string user(user_char);
-	std::string command = default_directory + "gorque.py -u " + user + " -d " + jobid;
+	std::string command = default_directory + "/gorque.py -p " + jobid;
 	// std::cout << command;
 	setuid(0);
 	system(command.c_str());
