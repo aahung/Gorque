@@ -67,10 +67,10 @@ class Daemon():
 #PBS -l nodes=%s:ppn=%s
 #PBS -q default
 
-sleep 50000000''' % (job.rowid,)
+sleep 50000000'''
         job_script_file_path = '/tmp/gorque_torque_%s.sh' % (str(job.rowid),)
         job_script_file = open(job_script_file_path, 'w')
-        job_script_file.write(job_template % (job.get('node'),
+        job_script_file.write(job_template % (job.rowid, job.get('node'),
                                               str(job.get('cpus'))))
         job_script_file.close()
         try:
