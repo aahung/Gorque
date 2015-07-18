@@ -82,6 +82,7 @@ sleep 50000000'''
             exit(2)
 
     def run_job(self, job, node):
+        job.set('node', node)
         golog('submit shadow job (torque)')
         torque_pid = self.submit_torque_occupy_job(job)
         template = '''/sbin/runuser -l {0} -c 'ssh {1} "/bin/bash {2}"' '''
