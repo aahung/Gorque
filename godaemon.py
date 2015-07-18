@@ -86,7 +86,7 @@ sleep 50000000'''
         golog('<%d> submit shadow job (torque)' % (job.rowid,))
         torque_pid = self.submit_torque_occupy_job(job)
         template = '''/sbin/runuser -l {0} -c 'ssh {1} "/bin/bash {2}"' '''
-        tmp_script_path = '%s%s_%s.sh' % (goconfig.JOB_SCRIPT_DIR,
+        tmp_script_path = '%s%s_%s.sh' % (self.config.job_script_dir,
                                           job.get('user'), str(job.rowid))
         golog('<%d> script content: \n%s' % (job.rowid, job.get('script')))
         golog('<%d> generating tmp script file' % (job.rowid,))

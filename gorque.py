@@ -68,6 +68,10 @@ class Gorque:
         print template.format('-' * 4, '-' * 20, '-' * 10, '-' * 10, '-' * 10,
                               '-' * 6, '-' * 13, '-' * 6, '-' * 13)
         print '| %s jobs running now.' % (str(job_count),)
+        config = goconfig.Config()
+        print '| Gorque config file: %s' % (goconfig.CONFIG_FILE)
+        print '| job log files under %s' % (config.job_script_dir)
+        print '| max job number per user: %d' % (config.max_job_per_user)
 
     def insert_job(self, name, user, priority, script, cpus):
         job = DB.Job({
@@ -150,88 +154,6 @@ class Gorque:
         job.set('mode', 'K')
         job.set('end_time', int(time.time()))
         db.update(job)
-
-    def log_to_file(self, user, rowid, out, err, job_name):
-        directory = '/home/' + user + '/gorque_log/'
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        f = open(directory + str(rowid) + '_' + str(job_name) + '.log', 'w')
-        f.write(out)
-        f.close()
-        f = open(directory + str(rowid) + '_' + str(job_name) + '.error', 'w')
-        f.write(err)
-        f.close()
-
-    def find_free_nodes(self):
-        golog('checking GPU free nodes')
-        free_nodes = subprocess.check_output('''for i in compute-0-2 compute-0-3 compute-0-4 compute-0-5 compute-0-6 compute-0-7 compute-0-8 compute-0-9 compute-0-10 compute-0-11 compute-0-12 compute-0-13 compute-0-14 compute-0-15 compute-0-16 ; do ssh ${i} 'mem=$(nvidia-smi | grep 4799 | cut -d"/" -f3 | cut -d"|" -f2 | sed -e "s/^[ \t]*//"); if [[ "$mem" == 10MiB* ]]; then echo $(hostname) | cut -d"." -f1; fi'; done;''', shell=True)
-        free_nodes = [x for x in free_nodes.split('\n') if x != '']
-        if len(free_nodes) > 0:
-            golog('found GPU free node(s)')
-        return free_nodes
-
-    def get_waiting_jobs(self):
-        c = self.conn.cursor()
-        c.execute('''SELECT ROWID, user, cpus FROM queue WHERE mode = 'Q' ORDER BY priority DESC ''')
-        waiting_jobs = c.fetchall()
-        qualified_jobs = []
-        for job in waiting_jobs:
-            c.execute('''SELECT ROWID FROM queue WHERE mode = 'R' AND user = ?''', (job[1],))
-            user_jobs = c.fetchall()
-            if len(user_jobs) < self.max_job_per_user_limit:
-                qualified_jobs.append(job)
-        return qualified_jobs
-
-    def check_jobs(self):
-        qualified_jobs = self.get_waiting_jobs()
-        if len(qualified_jobs) > 0:
-            # make sure there is waiting jobs then query
-            free_nodes = self.find_free_nodes()
-            if len(free_nodes) > 0:
-                # last use compute-0-0
-                if free_nodes[0].startswith('compute-0-0'):
-                    # compute0 = free_nodes[0]
-                    free_nodes.remove(free_nodes[0])
-                    # free_nodes.append(compute0)
-                # refetch database in case already
-                # executed by another cron process.
-                qualified_jobs = self.get_waiting_jobs()
-                if len(qualified_jobs) > 0:
-                    # check user limit
-                    found = False
-                    job = None
-                    node = None
-                    for qualified_job in qualified_jobs:
-                        j_free_nodes = []
-                        j_cpus = qualified_job[2]
-                        # check torque status find free cpu node which cpu
-                        # availibility >= cpu required
-                        golog('checking CPU free nodes')
-                        qstat = subprocess.check_output(['/opt/torque/bin/qstat', '-n'])
-                        golog('called \'gostat -n\'')
-                        for free_node in free_nodes:
-                            j_cpus_in_use = qstat.count(free_node + '/')
-                            if j_cpus_in_use + j_cpus > 16:
-                                pass
-                            else:
-                                j_free_nodes.append(free_node)
-                        if len(j_free_nodes) > 0:
-                            golog('found CPU free node(s)')
-                            node = j_free_nodes[0]
-                            job = qualified_job
-                            found = True
-                            break
-                    if found:
-                        golog('found a job, ready to execute')
-                        self.execute_job(job[0], node, job[2])
-                    else:
-                        golog('no free nodes avalible')
-                else:
-                    golog('no free nodes avalible')
-            else:
-                golog('no free nodes avalible')
-        else:
-            golog('no qualified waiting jobs in the queue')
 
 
 def main(argv):

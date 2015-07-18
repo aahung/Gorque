@@ -6,10 +6,6 @@ GORQUE_DIR = '/etc/gorque/'
 CONFIG_FILE = GORQUE_DIR + 'gorque.json'
 DB_FILE = GORQUE_DIR + 'gorque.db'
 
-# JOB_SCRIPT_DIR folder should be
-# able to be accessed by nodes
-JOB_SCRIPT_DIR = '/share/apps/gorque_scripts/'
-
 
 class Config():
 
@@ -20,8 +16,11 @@ class Config():
                                                          + message)
 
     # config variables
-    hosts = []
-    max_job_per_user = 0
+    hosts = None
+    max_job_per_user = None
+    # JOB_SCRIPT_DIR folder should be
+    # able to be accessed by nodes
+    job_script_dir = None
     # end
 
     def __init__(self):
@@ -50,3 +49,10 @@ class Config():
         if type(config['user_jobs']) is not int:
             raise Config.ConfigException('Invalid value of key "user_jobs"')
         self.max_job_per_user = config['user_jobs']
+        # check if job_script_dir is in
+        if 'job_script_dir' not in keys:
+            raise Config.ConfigException('missing key "job_script_dir"')
+        if type(config['job_script_dir']) is not unicode:
+            raise Config.ConfigException('Invalid value of '
+                                         'key "job_script_dir"')
+        self.job_script_dir = config['job_script_dir']
