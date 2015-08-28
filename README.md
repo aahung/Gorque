@@ -44,7 +44,12 @@ create a folder `/etc/gorque` and create a file named `gorque.json` with content
         "compute-0-3",
         "compute-0-4"
     ],
-    "user_jobs": 8,
+    "user_jobs": {
+        "default": 8,
+        "override": {
+            "username": 4
+        }
+    },
     "job_script_dir": "/share/apps/gorque_scripts/",
     "job_log_dir": "/var/log/gorque/"
 }
