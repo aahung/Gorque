@@ -19,6 +19,7 @@ class Config():
     # config variables
     hosts = None
     max_job_per_user = None
+    override_max_job_per_user = None
     # JOB_SCRIPT_DIR folder should be
     # able to be accessed by nodes
     job_script_dir = None
@@ -32,6 +33,11 @@ class Config():
         except Exception, e:
             print('Config reading error: %s' % (e,))
             exit(-1)
+
+    def get_user_job_limit(self, user):
+        if user in self.override_max_job_per_user:
+            return self.override_max_job_per_user[user]
+        return self.max_job_per_user
 
     def validate_and_load(self, config):
         keys = config.keys()
@@ -48,9 +54,20 @@ class Config():
         # check if user_jobs is in
         if 'user_jobs' not in keys:
             raise Config.ConfigException('missing key "user_jobs"')
-        if type(config['user_jobs']) is not int:
+        if type(config['user_jobs']) is int:
+            self.max_job_per_user = config['user_jobs']
+            self.override_max_job_per_user = dict()
+        elif type(config['user_jobs']) is dict:
+            if type(config['user_jobs']['default']) is not int:
+                raise Config.ConfigException('Invalid value of key'
+                                             ' "user_jobs[defult]"')
+            if type(config['user_jobs']['override']) is not dict:
+                raise Config.ConfigException('Invalid value of key'
+                                             ' "user_jobs[override]"')
+            self.max_job_per_user = config['user_jobs']['default']
+            self.override_max_job_per_user = config['user_jobs']['override']
+        else:
             raise Config.ConfigException('Invalid value of key "user_jobs"')
-        self.max_job_per_user = config['user_jobs']
         # check if job_script_dir is in
         if 'job_script_dir' not in keys:
             raise Config.ConfigException('missing key "job_script_dir"')

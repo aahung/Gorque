@@ -42,7 +42,7 @@ class Daemon():
             user = job.get('user')
             if user not in count.keys():
                 count[user] = 0
-            if count[user] < self.config.max_job_per_user:
+            if count[user] < self.config.get_user_job_limit(user):
                 count[user] = count[user] + 1
                 qualified_jobs.append(job)
         return qualified_jobs

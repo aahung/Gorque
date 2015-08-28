@@ -70,8 +70,8 @@ class Gorque:
         print '| %s jobs running now.' % (str(job_count),)
         config = goconfig.Config()
         print '| Gorque config file: %s' % (goconfig.CONFIG_FILE)
-        print '| job log files under %s' % (config.job_script_dir)
-        print '| max job number per user: %d' % (config.max_job_per_user)
+        print '| job log files under %s' % (config.job_log_dir)
+        print '| default job limit per user: %d' % (config.max_job_per_user)
 
     def insert_job(self, name, user, priority, script, cpus):
         job = DB.Job({
