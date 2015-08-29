@@ -8,6 +8,7 @@ from godb import DB
 from multiprocessing import Process
 from time import sleep
 from golog import golog
+from torque import Torque
 
 
 def background_run_job(job, node):
@@ -45,6 +46,9 @@ class Daemon():
             if count[user] < self.config.get_user_job_limit(user):
                 count[user] = count[user] + 1
                 qualified_jobs.append(job)
+        # sort by cpu desc then priority desc
+        qualified_jobs.sort(key=lambda k: k.get('cpus'), reverse=True)
+        qualified_jobs.sort(key=lambda k: k.get('priority'), reverse=True)
         return qualified_jobs
 
     def get_free_nodes(self):
@@ -139,13 +143,25 @@ sleep 50000000'''
             if len(qualified_jobs) > 0:
                 # scan for free GPUs
                 free_nodes = self.get_free_nodes()
+                free_cpus = Torque.free_cpus_in_nodes(free_nodes)
+                free_nodes = sorted(free_cpus, reverse=True)
                 if len(free_nodes) > 0:
                     # execute the job
-                    job_num_to_run = min(len(qualified_jobs), len(free_nodes))
-                    for i in range(0, job_num_to_run):
-                        p = Process(target=background_run_job,
-                                    args=(qualified_jobs[i], free_nodes[i]))
-                        p.start()
+                    i_node = 0
+                    i_job = 0
+                    while i_node < len(free_nodes) and i_job < len(qualified_jobs):
+                        cpus_required = qualified_jobs[i_job].get('cpus')
+                        cpus_available = free_cpus[free_nodes[i_node]]
+                        if cpus_available >= cpus_required:
+                            # run the job
+                            p = Process(target=background_run_job,
+                                        args=(qualified_jobs[i_job],
+                                              free_nodes[i_node]))
+                            p.start()
+                            i_job = i_job + 1
+                            i_node = i_node + 1
+                        else:
+                            i_node = i_node + 1
                 else:
                     golog('no free nodes available')
             else:
