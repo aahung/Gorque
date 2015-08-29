@@ -47,8 +47,8 @@ class Daemon():
                 count[user] = count[user] + 1
                 qualified_jobs.append(job)
         # sort by cpu desc then priority desc
-        qualified_jobs.sort(key=lambda k: k['cpus'], reverse=True)
-        qualified_jobs.sort(key=lambda k: k['priority'], reverse=True)
+        qualified_jobs.sort(key=lambda k: k.get('cpus'), reverse=True)
+        qualified_jobs.sort(key=lambda k: k.get('priority'), reverse=True)
         return qualified_jobs
 
     def get_free_nodes(self):
@@ -150,7 +150,7 @@ sleep 50000000'''
                     i_node = 0
                     i_job = 0
                     while i_node < len(free_nodes) and i_job < len(qualified_jobs):
-                        cpus_required = qualified_jobs[i_job]['cpus']
+                        cpus_required = qualified_jobs[i_job].get('cpus')
                         cpus_available = free_cpus[free_nodes[i_node]]
                         if cpus_available >= cpus_required:
                             # run the job
