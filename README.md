@@ -8,6 +8,9 @@ This program is used to schedule GPU job according to
 2. job queued by priority (higher priority number should be executed first),
 rule. 
 
+### Torque
+`pbsnodes` and `qstat`, `qsub` commands should be available since Gorque also cares about CPU usage of each node and submit shadow CPU job to the node along with GPU job.
+
 ## Install
 
 ### Python 2.7+
